@@ -58,6 +58,8 @@
   <span class="np-artist" id="np-artist"></span>
 </div>
 
+<div class="viz-container" id="viz"></div>
+
 <div class="bottom-line">
   twitch.tv/<span>neothefox98</span>
 </div>
@@ -125,6 +127,19 @@
 
   loadNowPlaying();
   setInterval(loadNowPlaying, 5000);
+
+  // --- Audio Visualizer ---
+  var viz = document.getElementById('viz');
+  var barCount = 28;
+  for (var i = 0; i < barCount; i++) {
+    var bar = document.createElement('div');
+    bar.className = 'viz-bar';
+    var hue = (i / barCount) * 360;
+    bar.style.background = 'hsl(' + hue + ', 100%, 60%)';
+    bar.style.animation = 'vizBounce ' + (0.5 + Math.random() * 0.4) + 's ease-in-out infinite alternate';
+    bar.style.animationDelay = (Math.random() * 0.8) + 's';
+    viz.appendChild(bar);
+  }
 })();
 </script>
 </body>

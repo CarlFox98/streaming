@@ -215,12 +215,11 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* ---------- Now Playing ---------- */
+/* ---------- Now Playing (bottom-left) ---------- */
 .now-playing {
   position: absolute;
-  bottom: 90px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 40px;
+  left: 40px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -228,6 +227,7 @@ body {
   color: var(--text-muted);
   opacity: 0;
   transition: opacity 0.5s;
+  z-index: 2;
 }
 .now-playing.visible { opacity: 1; }
 .now-playing .np-icon {
@@ -244,6 +244,30 @@ body {
 .now-playing .np-sep { color: var(--text-subtle); margin: 0 6px; }
 .now-playing .np-artist { color: var(--brand); }
 
+/* ---------- Audio Visualizer ---------- */
+.viz-container {
+  position: absolute;
+  bottom: 75px;
+  left: 40px;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 48px;
+  z-index: 2;
+  pointer-events: none;
+}
+.viz-bar {
+  width: 5px;
+  min-height: 4px;
+  border-radius: 3px 3px 1px 1px;
+  transform-origin: bottom;
+  will-change: transform;
+}
+@keyframes vizBounce {
+  0% { transform: scaleY(0.15); }
+  100% { transform: scaleY(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .logo, .avatar, .avatar-glow, .line, .timer-ring, .subtitle,
   .starting-soon, .starting-soon span {
@@ -252,4 +276,5 @@ body {
   .starting-soon { opacity: 1; }
   .starting-soon span { opacity: 1; transform: none; }
   .now-playing { display: none; }
+  .viz-container { display: none; }
 }
