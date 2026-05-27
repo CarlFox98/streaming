@@ -38,11 +38,9 @@ function Write-Banner {
 }
 
 function Write-Step($msg)            { Write-Host "  >> $msg" -ForegroundColor Yellow }
-function Write-Ok($msg)              { Write-Host "  [$(Format-Hex -Bytes (0..0) | Out-Null); ✔] $msg" -ForegroundColor Green }
-function Write-Fail($msg)            { Write-Host "  [✘] $msg" -ForegroundColor Red }
+function Write-Ok($msg)              { Write-Host "  [`$] $msg" -ForegroundColor Green }
+function Write-Fail($msg)            { Write-Host "  [!] $msg" -ForegroundColor Red }
 function Write-Info($label, $value)  { Write-Host "  $($label.PadRight(22)) $value" -ForegroundColor Gray }
-
-function Format-Hex { param($Bytes) $null }  # no-op shim (just for checkmark in PS5)
 
 # ---- startup ----
 Clear-Host
@@ -102,9 +100,9 @@ if (-not $NoSpotify) {
 Write-Host ""
 
 # ---- summary ----
-Write-Host "  ╔══════════════════════════════════════════════╗" -ForegroundColor Cyan
-Write-Host "  ║         ALL SYSTEMS NOMINAL                  ║" -ForegroundColor Cyan
-Write-Host "  ╚══════════════════════════════════════════════╝" -ForegroundColor Cyan
+Write-Host "  ======================================" -ForegroundColor Cyan
+Write-Host "       ALL SYSTEMS NOMINAL               " -ForegroundColor Cyan
+Write-Host "  ======================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Info "Stream monitor"           "Running  (PID inside job)"
 if (-not $NoSpotify) {
@@ -112,13 +110,13 @@ if (-not $NoSpotify) {
 }
 Write-Info "Starting Soon timer"     "$Minutes min"
 Write-Info "Logs directory"          "$Logs_Dir"
-Write-Info "OBS scenes"              "$($Scene_StartingSoon) → $($Scene_Streaming) → $($Scene_JustChatting) → $($Scene_BeBackSoon) → $($Scene_EndOfStream) → $($Scene_TechDifficulties)"
+Write-Info "OBS scenes"              "$($Scene_StartingSoon) > $($Scene_Streaming) > $($Scene_JustChatting) > $($Scene_BeBackSoon) > $($Scene_EndOfStream) > $($Scene_TechDifficulties)"
 Write-Host ""
 Write-Host "  Starting Soon overlay at:  $($Minutes) min countdown" -ForegroundColor Gray
 if (-not $NoSpotify) {
     Write-Host "  Spotify now-playing:         ON (writes to overlays/np-data.js)" -ForegroundColor Gray
 }
-Write-Host "  Tech-difficulties timeout: $($Monitor_TechDiffTimeoutSec)s of downtime → End of Stream" -ForegroundColor Gray
+Write-Host "  Tech-difficulties timeout: $($Monitor_TechDiffTimeoutSec)s of downtime > End of Stream" -ForegroundColor Gray
 Write-Host ""
 
 # ---- monitor loop (keeps this window alive, shows status) ----
