@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="overlay-theme.css">
+<style>
+
+body {
+  background: linear-gradient(135deg, var(--bg-1), var(--bg-3), var(--bg-2), var(--bg-4));
+  background-size: 400% 400%;
+  animation: gradientShift 12s ease infinite;
+}
+
+.main-text {
+  font-size: 64px; font-weight: 800;
+  color: white;
+  text-shadow: 0 0 40px var(--brand-dim);
+  margin-bottom: 8px;
+}
+
+.subtitle { margin-bottom: 25px; animation: fadeInPulse 3s ease infinite; }
+
+.avatar-wrapper { margin-bottom: 20px; }
+.avatar-glow { width: 280px; height: 280px; background: radial-gradient(circle, rgba(232,129,62,0.2), transparent 70%); animation-duration: 3s; }
+.avatar { width: 240px; height: 240px; animation-duration: 4s; }
+
+.social-links {
+  font-size: 20px; color: var(--text-muted);
+  margin-bottom: 15px; line-height: 1.8;
+}
+.social-links a { color: var(--brand); text-decoration: none; }
+
+.follow-msg {
+  font-size: 18px; color: var(--text-subtle);
+  letter-spacing: 2px; margin-bottom: 20px;
+}
+.follow-msg span { color: var(--brand); }
+
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+  .particle, .scanlines { display: none; }
+  .logo, .subtitle, .avatar, .avatar-glow, .line { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="particle" style="left:10%;width:5px;height:5px;animation-duration:14s;animation-delay:0s;"></div>
+<div class="particle" style="left:35%;width:4px;height:4px;animation-duration:12s;animation-delay:1.5s;"></div>
+<div class="particle" style="left:55%;width:6px;height:6px;animation-duration:16s;animation-delay:3s;"></div>
+<div class="particle" style="left:75%;width:3px;height:3px;animation-duration:11s;animation-delay:2s;"></div>
+<div class="particle" style="left:90%;width:5px;height:5px;animation-duration:13s;animation-delay:4s;"></div>
+<div class="particle" style="left:45%;width:7px;height:7px;animation-duration:15s;animation-delay:3.5s;"></div>
+
+<div class="scanlines"></div>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="logo">NeoTheFox98</div>
+<div class="main-text">Thanks for Watching!</div>
+<div class="subtitle">Stream has ended</div>
+
+<div class="avatar-wrapper">
+  <div class="avatar-glow"></div>
+  <img class="avatar" id="avatar" alt="Bean">
+</div>
+
+<div class="line"></div>
+
+<div class="social-links">
+  <div>Follow me on <a href="https://twitch.tv/neothefox98">Twitch</a> for the next stream!</div>
+  <div>VOD available on <a href="https://www.youtube.com/@NeoTheFox98">YouTube</a></div>
+</div>
+
+<div class="follow-msg">
+  <span>See you next time!</span>
+</div>
+
+<script>
+(function() {
+  var base = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+  document.getElementById('avatar').src = base.substring(0, base.lastIndexOf('/')) + '/assets/Bean.png';
+})();
+</script>
+</body>
+</html>

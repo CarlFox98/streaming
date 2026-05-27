@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="overlay-theme.css">
+<style>
+/* Starting-soon-specific overrides */
+.starting-soon { margin-top: 20px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .starting-soon, .starting-soon span { animation: none; opacity: 1; }
+  .starting-soon span { opacity: 1; transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="particle" style="left:10%;width:6px;height:6px;animation-duration:12s;animation-delay:0s;"></div>
+<div class="particle" style="left:25%;width:4px;height:4px;animation-duration:15s;animation-delay:2s;"></div>
+<div class="particle" style="left:45%;width:8px;height:8px;animation-duration:10s;animation-delay:4s;"></div>
+<div class="particle" style="left:65%;width:5px;height:5px;animation-duration:14s;animation-delay:1s;"></div>
+<div class="particle" style="left:80%;width:3px;height:3px;animation-duration:11s;animation-delay:3s;"></div>
+<div class="particle" style="left:90%;width:7px;height:7px;animation-duration:13s;animation-delay:5s;"></div>
+<div class="particle" style="left:35%;width:4px;height:4px;animation-duration:16s;animation-delay:2.5s;"></div>
+<div class="particle" style="left:70%;width:6px;height:6px;animation-duration:9s;animation-delay:4.5s;"></div>
+
+<div class="scanlines"></div>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="starting-soon" id="ss-header">
+  <span>S</span><span>T</span><span>A</span><span>R</span><span>T</span><span>I</span><span>N</span><span>G</span>
+  <span>&nbsp;</span>
+  <span>S</span><span>O</span><span>O</span><span>N</span>
+</div>
+
+<div class="subtitle" style="animation-delay:0.2s;">Welcome to the stream</div>
+<div class="logo">NeoTheFox98</div>
+
+<div class="avatar-wrapper">
+  <div class="avatar-glow"></div>
+  <img class="avatar" id="avatar" alt="Bean">
+</div>
+
+<div class="line"></div>
+
+<div class="timer-container">
+  <div class="timer-ring"></div>
+  <div class="timer" id="timer">5:00</div>
+</div>
+<div class="timer-label">Until We Go Live</div>
+
+<div class="now-playing" id="np-bar">
+  <div class="np-icon"></div>
+  <span class="np-track" id="np-title"></span>
+  <span class="np-sep">&mdash;</span>
+  <span class="np-artist" id="np-artist"></span>
+</div>
+
+<div class="bottom-line">
+  twitch.tv/<span>neothefox98</span>
+</div>
+
+<script>
+(function() {
+  // --- Configurable timer from URL ---
+  var minutes = 5;
+  var params = new URLSearchParams(window.location.search);
+  if (params.has('minutes')) {
+    var m = parseInt(params.get('minutes'), 10);
+    if (m > 0 && m <= 120) minutes = m;
+  }
+
+  var totalSeconds = minutes * 60;
+  var timerEl = document.getElementById('timer');
+  var logoEl = document.querySelector('.logo');
+  var timerContainer = document.querySelector('.timer-container');
+
+  function updateTimer() {
+    if (totalSeconds <= 0) {
+      timerEl.textContent = 'LIVE!';
+      timerEl.style.background = 'linear-gradient(180deg, #ff4444, var(--brand-light))';
+      timerEl.style.webkitBackgroundClip = 'text';
+      timerEl.style.webkitTextFillColor = 'transparent';
+      timerEl.style.backgroundClip = 'text';
+      timerEl.style.fontSize = '68px';
+      logoEl.textContent = '\uD83D\uDD34 LIVE';
+      return;
+    }
+    totalSeconds--;
+    var m = Math.floor(totalSeconds / 60);
+    var s = totalSeconds % 60;
+    timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  // Initial display
+  timerEl.textContent = minutes + ':00';
+  setInterval(updateTimer, 1000);
+
+  // --- Resolve avatar path relative to this file ---
+  var base = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+  document.getElementById('avatar').src = base.substring(0, base.lastIndexOf('/')) + '/assets/Bean.png';
+
+  // --- Now Playing ---
+  var npBar = document.getElementById('np-bar');
+  var npTitle = document.getElementById('np-title');
+  var npArtist = document.getElementById('np-artist');
+
+  function loadNowPlaying() {
+    var s = document.createElement('script');
+    s.src = 'np-data.js?t=' + Date.now();
+    s.onload = function() {
+      if (window._np && window._np.playing) {
+        npTitle.textContent = window._np.title;
+        npArtist.textContent = window._np.artist;
+        npBar.classList.add('visible');
+      } else {
+        npBar.classList.remove('visible');
+      }
+      window._np = null;
+    };
+    document.body.appendChild(s);
+  }
+
+  loadNowPlaying();
+  setInterval(loadNowPlaying, 5000);
+})();
+</script>
+</body>
+</html>

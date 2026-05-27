@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="overlay-theme.css">
+<style>
+body {
+  background: linear-gradient(135deg, #1a0a2e, #2d0a3e, #1a0a2e, #0f0c29);
+  background-size: 400% 400%;
+  animation: gradientShift 6s ease infinite;
+}
+
+.warn-icon {
+  font-size: 96px;
+  margin-bottom: 20px;
+  animation: warnPulse 1.5s ease-in-out infinite;
+  filter: drop-shadow(0 0 40px rgba(232, 129, 62, 0.4));
+  will-change: transform, filter;
+}
+@keyframes warnPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 40px rgba(232, 129, 62, 0.3)); }
+  50% { transform: scale(1.08); filter: drop-shadow(0 0 60px rgba(232, 129, 62, 0.7)); }
+}
+
+.main-text {
+  font-size: 64px; font-weight: 800;
+  color: white;
+  text-shadow: 0 0 40px var(--brand-dim);
+  margin-bottom: 10px;
+}
+
+.subtitle { margin-bottom: 15px; }
+
+.status-line {
+  font-size: 20px; color: var(--text-muted);
+  margin-bottom: 40px;
+  letter-spacing: 1px;
+}
+.status-line span {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #ff4444;
+  margin-right: 8px;
+  animation: statusBlink 1s ease infinite;
+  vertical-align: middle;
+}
+@keyframes statusBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.avatar-wrapper { margin-bottom: 15px; }
+.avatar-glow { width: 250px; height: 250px; background: radial-gradient(circle, rgba(232,129,62,0.15), transparent 70%); animation-duration: 2s; }
+.avatar { width: 200px; height: 200px; }
+
+.reconnect-bar {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 30px;
+}
+.reconnect-track {
+  width: 400px; height: 4px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.reconnect-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--brand-light));
+  border-radius: 2px;
+  animation: reconnectFill 4s linear infinite;
+  will-change: transform;
+}
+@keyframes reconnectFill {
+  0% { width: 0%; }
+  50% { width: 100%; }
+  100% { width: 0%; }
+}
+.reconnect-label {
+  font-size: 14px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 2px;
+}
+
+.line { margin-bottom: 20px; }
+
+.bottom-line { font-size: 18px; color: var(--text-subtle); letter-spacing: 3px; }
+.bottom-line span { color: var(--brand); animation: blink 1.5s ease infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  body { animation: none; }
+  .particle, .scanlines, .warn-icon, .reconnect-fill, .status-line span { display: none; }
+  .warn-icon { animation: none; transform: none; }
+}
+</style>
+</head>
+<body>
+<div class="particle" style="left:15%;width:5px;height:5px;animation-duration:8s;animation-delay:0s;"></div>
+<div class="particle" style="left:30%;width:4px;height:4px;animation-duration:11s;animation-delay:1s;"></div>
+<div class="particle" style="left:50%;width:6px;height:6px;animation-duration:9s;animation-delay:3s;"></div>
+<div class="particle" style="left:70%;width:3px;height:3px;animation-duration:10s;animation-delay:2s;"></div>
+<div class="particle" style="left:85%;width:5px;height:5px;animation-duration:12s;animation-delay:4s;"></div>
+
+<div class="scanlines"></div>
+
+<div class="corner corner-tl"></div>
+<div class="corner corner-tr"></div>
+<div class="corner corner-bl"></div>
+<div class="corner corner-br"></div>
+
+<div class="warn-icon">&#9888;</div>
+<div class="main-text">Technical Difficulties</div>
+<div class="subtitle">Something went wrong with the stream</div>
+<div class="status-line"><span></span>Attempting to reconnect...</div>
+
+<div class="avatar-wrapper">
+  <div class="avatar-glow"></div>
+  <img class="avatar" id="avatar" alt="Bean">
+</div>
+
+<div class="reconnect-bar">
+  <div class="reconnect-track"><div class="reconnect-fill"></div></div>
+  <div class="reconnect-label">Auto-reconnect</div>
+</div>
+
+<div class="line"></div>
+
+<div class="bottom-line">
+  twitch.tv/<span>neothefox98</span>
+</div>
+
+<script>
+(function() {
+  var base = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
+  document.getElementById('avatar').src = base.substring(0, base.lastIndexOf('/')) + '/assets/Bean.png';
+})();
+</script>
+</body>
+</html>

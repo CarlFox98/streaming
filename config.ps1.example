@@ -1,0 +1,16 @@
+# Copy this file to config.ps1 and fill in your values.
+# config.ps1 is gitignored so secrets stay local.
+
+$OBS_Host = "localhost"
+$OBS_Port = 4455
+$OBS_Password = "your-obs-websocket-password-here"
+
+$Streaming_Root = "$env:USERPROFILE\Streaming"
+$Overlays_Dir = "$Streaming_Root\overlays"
+$Assets_Dir = "$Streaming_Root\assets"
+$Logs_Dir = "$Streaming_Root\logs"
+$Backups_Dir = "$Streaming_Root\backups"
+
+$Monitor_PollIntervalMs = 2000
+$Monitor_TechDiffTimeoutSec = 60
+$Spotify_PollIntervalSec = 5

@@ -1,0 +1,21 @@
+# Secrets (OBS WebSocket password)
+config.ps1
+
+# Generated overlay data (changes every 5s)
+overlays/np-data.js
+
+# Logs and backups
+logs/
+backups/
+
+# OS junk
+Thumbs.db
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
