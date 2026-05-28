@@ -1,12 +1,17 @@
 # Secrets (OBS WebSocket password)
 config.ps1
 
-# Generated overlay data (changes every 5s)
+# Generated overlay data (changes frequently)
 overlays/np-data.js
+overlays/audio-levels.js
 
 # Logs and backups
 logs/
 backups/
+
+# Compiled executables from PS2EXE
+*.exe
+!scripts/*.ps1
 
 # OS junk
 Thumbs.db

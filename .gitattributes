@@ -1,1 +1,19 @@
 * text=auto
+
+# PowerShell scripts
+*.ps1 text eol=crlf diff
+
+# Web files
+*.html text eol=crlf diff
+*.css text eol=crlf diff
+*.js text eol=crlf diff
+
+# Config
+*.ini text eol=crlf diff
+*.json text eol=crlf diff
+*.md text eol=crlf diff
+
+# Binary assets
+*.png binary
+*.mp3 binary
+*.ico binary

@@ -3,12 +3,88 @@
 <head>
 <link rel="stylesheet" href="overlay-theme.css">
 <style>
-/* Starting-soon-specific overrides */
 .starting-soon { margin-top: 20px; }
 
 @media (prefers-reduced-motion: reduce) {
   .starting-soon, .starting-soon span { animation: none; opacity: 1; }
   .starting-soon span { opacity: 1; transform: none; }
+}
+
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.bottom-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 40px 35px 40px;
+}
+
+.viz-container {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  height: 64px;
+  pointer-events: none;
+}
+.viz-bar {
+  width: 5px;
+  height: 0px;
+  border-radius: 3px 3px 1px 1px;
+  transition: none;
+}
+
+.info-row {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  width: 100%;
+}
+
+.now-playing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.5s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.now-playing.visible { opacity: 1; }
+.now-playing .np-icon {
+  width: 12px; height: 12px;
+  border-radius: 2px;
+  background: var(--brand-dim);
+  animation: npPulse 1.5s ease infinite;
+  flex-shrink: 0;
+}
+@keyframes npPulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.now-playing .np-track { color: var(--text); }
+.now-playing .np-sep { color: var(--text-subtle); }
+.now-playing .np-artist { color: var(--brand); }
+
+.bottom-line {
+  text-align: center;
+  font-size: 18px; color: var(--text-subtle);
+  letter-spacing: 3px;
+}
+.bottom-line span { color: var(--brand); animation: blink 1.5s ease infinite; }
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 </style>
 </head>
@@ -29,44 +105,47 @@
 <div class="corner corner-bl"></div>
 <div class="corner corner-br"></div>
 
-<div class="starting-soon" id="ss-header">
-  <span>S</span><span>T</span><span>A</span><span>R</span><span>T</span><span>I</span><span>N</span><span>G</span>
-  <span>&nbsp;</span>
-  <span>S</span><span>O</span><span>O</span><span>N</span>
+<div class="content-area">
+  <div class="starting-soon" id="ss-header">
+    <span>S</span><span>T</span><span>A</span><span>R</span><span>T</span><span>I</span><span>N</span><span>G</span>
+    <span>&nbsp;</span>
+    <span>S</span><span>O</span><span>O</span><span>N</span>
+  </div>
+
+  <div class="subtitle" style="animation-delay:0.2s;">Welcome to the stream</div>
+  <div class="logo">NeoTheFox98</div>
+
+  <div class="avatar-wrapper">
+    <div class="avatar-glow"></div>
+    <img class="avatar" id="avatar" alt="Bean">
+  </div>
+
+  <div class="line"></div>
+
+  <div class="timer-container">
+    <div class="timer-ring"></div>
+    <div class="timer" id="timer">5:00</div>
+  </div>
+  <div class="timer-label">Until We Go Live</div>
 </div>
 
-<div class="subtitle" style="animation-delay:0.2s;">Welcome to the stream</div>
-<div class="logo">NeoTheFox98</div>
-
-<div class="avatar-wrapper">
-  <div class="avatar-glow"></div>
-  <img class="avatar" id="avatar" alt="Bean">
-</div>
-
-<div class="line"></div>
-
-<div class="timer-container">
-  <div class="timer-ring"></div>
-  <div class="timer" id="timer">5:00</div>
-</div>
-<div class="timer-label">Until We Go Live</div>
-
-<div class="now-playing" id="np-bar">
-  <div class="np-icon"></div>
-  <span class="np-track" id="np-title"></span>
-  <span class="np-sep">&mdash;</span>
-  <span class="np-artist" id="np-artist"></span>
-</div>
-
-<div class="viz-container" id="viz"></div>
-
-<div class="bottom-line">
-  twitch.tv/<span>neothefox98</span>
+<div class="bottom-area">
+  <div class="viz-container" id="viz"></div>
+  <div class="info-row">
+    <div class="now-playing" id="np-bar">
+      <div class="np-icon"></div>
+      <span class="np-track" id="np-title"></span>
+      <span class="np-sep">&mdash;</span>
+      <span class="np-artist" id="np-artist"></span>
+    </div>
+    <div class="bottom-line">
+      twitch.tv/<span>neothefox98</span>
+    </div>
+  </div>
 </div>
 
 <script>
 (function() {
-  // --- Configurable timer from URL ---
   var minutes = 5;
   var params = new URLSearchParams(window.location.search);
   if (params.has('minutes')) {
@@ -96,15 +175,12 @@
     timerEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
   }
 
-  // Initial display
   timerEl.textContent = minutes + ':00';
   setInterval(updateTimer, 1000);
 
-  // --- Resolve avatar path relative to this file ---
   var base = window.location.href.substring(0, window.location.href.lastIndexOf('/'));
   document.getElementById('avatar').src = base.substring(0, base.lastIndexOf('/')) + '/assets/Bean.png';
 
-  // --- Now Playing ---
   var npBar = document.getElementById('np-bar');
   var npTitle = document.getElementById('np-title');
   var npArtist = document.getElementById('np-artist');
@@ -128,18 +204,46 @@
   loadNowPlaying();
   setInterval(loadNowPlaying, 5000);
 
-  // --- Audio Visualizer ---
   var viz = document.getElementById('viz');
-  var barCount = 28;
+  var barCount = 160;
+  var vizBars = [];
+  var audioLevel = 0.5;
+
   for (var i = 0; i < barCount; i++) {
     var bar = document.createElement('div');
     bar.className = 'viz-bar';
     var hue = (i / barCount) * 360;
     bar.style.background = 'hsl(' + hue + ', 100%, 60%)';
-    bar.style.animation = 'vizBounce ' + (0.5 + Math.random() * 0.4) + 's ease-in-out infinite alternate';
-    bar.style.animationDelay = (Math.random() * 0.8) + 's';
     viz.appendChild(bar);
+    vizBars.push(bar);
   }
+
+  function updateViz() {
+    var maxH = 64;
+    for (var i = 0; i < vizBars.length; i++) {
+      var wiggle = 0.15 + Math.random() * 0.85;
+      var barH = audioLevel * wiggle * maxH;
+      vizBars[i].style.height = Math.round(Math.min(barH, maxH)) + 'px';
+    }
+  }
+
+  function loadAudioLevel() {
+    var s = document.createElement('script');
+    s.src = 'audio-levels.js?t=' + Date.now();
+    s.onload = function() {
+      if (window._al) {
+        var l = parseFloat(window._al.l);
+        if (!isNaN(l) && l > 0) { audioLevel = Math.min(l, 1.0); }
+      }
+      window._al = null;
+    };
+    s.onerror = function() { audioLevel = 0.75; };
+    document.body.appendChild(s);
+  }
+
+  updateViz();
+  setInterval(updateViz, 120);
+  setInterval(loadAudioLevel, 500);
 })();
 </script>
 </body>

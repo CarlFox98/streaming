@@ -169,17 +169,6 @@ body {
   margin-bottom: 30px;
 }
 
-/* ---------- Bottom line ---------- */
-.bottom-line {
-  font-size: 18px; color: var(--text-subtle);
-  letter-spacing: 3px;
-}
-.bottom-line span { color: var(--brand); animation: blink 1.5s ease infinite; }
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
 /* ---------- Subtitle ---------- */
 .subtitle {
   font-size: 26px; color: #ccc; margin-bottom: 30px;
@@ -213,59 +202,6 @@ body {
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-/* ---------- Now Playing (bottom-left) ---------- */
-.now-playing {
-  position: absolute;
-  bottom: 40px;
-  left: 40px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 14px;
-  color: var(--text-muted);
-  opacity: 0;
-  transition: opacity 0.5s;
-  z-index: 2;
-}
-.now-playing.visible { opacity: 1; }
-.now-playing .np-icon {
-  width: 14px; height: 14px;
-  border-radius: 2px;
-  background: var(--brand-dim);
-  animation: npPulse 1.5s ease infinite;
-}
-@keyframes npPulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-.now-playing .np-track { color: var(--text); }
-.now-playing .np-sep { color: var(--text-subtle); margin: 0 6px; }
-.now-playing .np-artist { color: var(--brand); }
-
-/* ---------- Audio Visualizer ---------- */
-.viz-container {
-  position: absolute;
-  bottom: 75px;
-  left: 40px;
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 48px;
-  z-index: 2;
-  pointer-events: none;
-}
-.viz-bar {
-  width: 5px;
-  min-height: 4px;
-  border-radius: 3px 3px 1px 1px;
-  transform-origin: bottom;
-  will-change: transform;
-}
-@keyframes vizBounce {
-  0% { transform: scaleY(0.15); }
-  100% { transform: scaleY(1); }
 }
 
 @media (prefers-reduced-motion: reduce) {

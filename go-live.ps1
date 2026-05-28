@@ -14,10 +14,15 @@
 
 param(
     [switch]$NoSpotify,
+    [switch]$NoAudioVis,
     [int]$Minutes = 30
 )
 
-. "$PSScriptRoot\config.ps1"
+$host.UI.RawUI.WindowTitle = "Go Live"
+
+. "$env:USERPROFILE\Streaming\config.ps1"
+
+$scriptRoot = "$env:USERPROFILE\Streaming"
 
 # ---- helpers ----
 function Write-Banner {
@@ -74,6 +79,12 @@ if (-not $NoSpotify -and -not (Test-Path $spotifyScript)) {
     $NoSpotify = $true
 }
 
+$audioVisScript = "$env:USERPROFILE\Streaming\scripts\obs-audio-vis.ps1"
+if (-not $NoAudioVis -and -not (Test-Path $audioVisScript)) {
+    Write-Warning "Audio visualizer script not found, skipping: $audioVisScript"
+    $NoAudioVis = $true
+}
+
 Write-Ok "All prerequisites met"
 Write-Host ""
 
@@ -81,20 +92,31 @@ Write-Host ""
 Write-Step "Launching OBS Stream Monitor..."
 $monitorLog = Join-Path $Logs_Dir "stream-monitor-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 $monitorJob = Start-Job -Name "StreamMonitor" -ScriptBlock {
-    param($ScriptPath, $LogPath)
-    & $ScriptPath *>&1 | Out-File $LogPath -Encoding utf8 -Append
-} -ArgumentList $monitorScript, $monitorLog
+    param($ScriptPath, $LogPath, $ObsHost2, $Port, $Pass, $PollMs, $TimeoutSec)
+    & $ScriptPath -ObsHost $ObsHost2 -ObsPort $Port -ObsPassword $Pass -PollIntervalMs $PollMs -TechDifficultiesTimeoutSec $TimeoutSec *>&1 | Out-File $LogPath -Encoding utf8 -Append
+} -ArgumentList $monitorScript, $monitorLog, $OBS_Host, $OBS_Port, $OBS_Password, $Monitor_PollIntervalMs, $Monitor_TechDiffTimeoutSec
 Write-Ok "Stream monitor started (Job ID: $($monitorJob.Id), log: $(Split-Path $monitorLog -Leaf))"
 
 # ---- launch spotify poller ----
 if (-not $NoSpotify) {
     Write-Step "Launching Spotify Now Playing poller..."
     $spotifyLog = Join-Path $Logs_Dir "spotify-now-playing-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
-    $spotifyJob = Start-Job -Name "SpotifyPoller" -ScriptBlock {
+$spotifyJob = Start-Job -Name "SpotifyPoller" -ScriptBlock {
+    param($ScriptPath, $LogPath, $Interval, $OutDir)
+    & $ScriptPath -IntervalSeconds $Interval -OutputDir $OutDir *>&1 | Out-File $LogPath -Encoding utf8 -Append
+} -ArgumentList $spotifyScript, $spotifyLog, $Spotify_PollIntervalSec, $Overlays_Dir
+    Write-Ok "Spotify poller started (Job ID: $($spotifyJob.Id), log: $(Split-Path $spotifyLog -Leaf))"
+}
+
+# ---- launch audio visualizer ----
+if (-not $NoAudioVis) {
+    Write-Step "Launching Audio Visualizer daemon..."
+    $audioVisLog = Join-Path $Logs_Dir "audio-vis-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+    $audioVisJob = Start-Job -Name "AudioVis" -ScriptBlock {
         param($ScriptPath, $LogPath)
         & $ScriptPath *>&1 | Out-File $LogPath -Encoding utf8 -Append
-    } -ArgumentList $spotifyScript, $spotifyLog
-    Write-Ok "Spotify poller started (Job ID: $($spotifyJob.Id), log: $(Split-Path $spotifyLog -Leaf))"
+    } -ArgumentList $audioVisScript, $audioVisLog
+    Write-Ok "Audio visualizer started (Job ID: $($audioVisJob.Id), log: $(Split-Path $audioVisLog -Leaf))"
 }
 
 Write-Host ""
@@ -107,6 +129,9 @@ Write-Host ""
 Write-Info "Stream monitor"           "Running  (PID inside job)"
 if (-not $NoSpotify) {
     Write-Info "Spotify poller"        "Running"
+}
+if (-not $NoAudioVis) {
+    Write-Info "Audio visualizer"      "Running"
 }
 Write-Info "Starting Soon timer"     "$Minutes min"
 Write-Info "Logs directory"          "$Logs_Dir"
@@ -136,9 +161,9 @@ while ($true) {
             $s | Remove-Job -Force
             Write-Step "Restarting stream monitor..."
             $monitorJob = Start-Job -Name "StreamMonitor" -ScriptBlock {
-                param($ScriptPath, $LogPath)
-                & $ScriptPath *>&1 | Out-File $LogPath -Encoding utf8 -Append
-            } -ArgumentList $monitorScript, $monitorLog
+                param($ScriptPath, $LogPath, $Host, $Port, $Pass, $PollMs, $TimeoutSec)
+                & $ScriptPath -ObsHost $Host -ObsPort $Port -ObsPassword $Pass -PollIntervalMs $PollMs -TechDifficultiesTimeoutSec $TimeoutSec *>&1 | Out-File $LogPath -Encoding utf8 -Append
+            } -ArgumentList $monitorScript, $monitorLog, $OBS_Host, $OBS_Port, $OBS_Password, $Monitor_PollIntervalMs, $Monitor_TechDiffTimeoutSec
             Write-Ok "Stream monitor restarted"
         }
     }
@@ -149,9 +174,21 @@ while ($true) {
             Write-Host "  $(Get-Date -Format 'HH:mm:ss') [WARN] Spotify poller failed. Restarting..." -ForegroundColor Yellow
             $sp | Remove-Job -Force
             $spotifyJob = Start-Job -Name "SpotifyPoller" -ScriptBlock {
+                param($ScriptPath, $LogPath, $Interval, $OutDir)
+                & $ScriptPath -IntervalSeconds $Interval -OutputDir $OutDir *>&1 | Out-File $LogPath -Encoding utf8 -Append
+            } -ArgumentList $spotifyScript, $spotifyLog, $Spotify_PollIntervalSec, $Overlays_Dir
+        }
+    }
+
+    if (-not $NoAudioVis) {
+        $av = Get-Job -Name "AudioVis" -ErrorAction SilentlyContinue
+        if ($av.State -eq "Failed") {
+            Write-Host "  $(Get-Date -Format 'HH:mm:ss') [WARN] Audio visualizer failed. Restarting..." -ForegroundColor Yellow
+            $av | Remove-Job -Force
+            $audioVisJob = Start-Job -Name "AudioVis" -ScriptBlock {
                 param($ScriptPath, $LogPath)
                 & $ScriptPath *>&1 | Out-File $LogPath -Encoding utf8 -Append
-            } -ArgumentList $spotifyScript, $spotifyLog
+            } -ArgumentList $audioVisScript, $audioVisLog
         }
     }
 
