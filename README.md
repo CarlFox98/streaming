@@ -53,6 +53,7 @@ All scripts source `Streaming\config.ps1` for shared settings (OBS host, port, p
 
 | Script | Purpose |
 |--------|---------|
+| `obs-preflight.ps1` / `.exe` | **Preflight** — validates OBS config, scenes, audio routing, overlays, disk space before go-live |
 | `obs-stream-monitor.ps1` | **Daemon** — polls OBS every 2s, auto-switches scenes (the workhorse) |
 | `go-live.ps1` | **Launcher** — starts monitor + Spotify, handles restarts, logs to `logs/` |
 | `spotify-now-playing.ps1` | Polls Spotify window title → writes `overlays/np-data.js` |
@@ -61,7 +62,7 @@ All scripts source `Streaming\config.ps1` for shared settings (OBS host, port, p
 | `obs-add-brb-endscene.ps1` | One-time: adds "Be Back Soon" + "End of Stream" scenes to JSON |
 | `obs-add-techdif-scene.ps1` | One-time: adds "Technical Difficulties" scene to JSON |
 | `obs-setup.ps1` | One-time: replaces StreamElements alerts with Twitch native alert box |
-| `obs-optimize.ps1` | One-time: configures OBS for 1080p60 @ 8000 Kbps |
+| `obs-optimize.ps1` | One-time: configures OBS for 1080p60 |
 | `obs-verify.ps1` / `obs-verify2.ps1` | Check OBS WebSocket connectivity |
 | `obs-audit.ps1` | Full OBS configuration audit |
 | `obs-dbg.ps1` | Raw WebSocket debug tool |
@@ -124,9 +125,18 @@ TECH_DIFF ──60s timeout──> END OF STREAM (final)
 
 ## OBS Scene Collection
 
-6 scenes in order: Starting Soon → Streaming → Just Chatting → Be Back Soon → End of Stream → Technical Difficulties
+6 scenes in order: Starting Soon → Streaming → Just Chatting → Be Back Soon → Technical Difficulties → End of Stream
 
-Profile: `Discord_Capture` — 1920x1080 @ 60fps, AMF H.264 @ 8000 Kbps, Twitch ingest
+Profile: `Discord_Capture` — 1920x1080 @ 60fps, AMF H.264 @ 6000 Kbps (Enhanced Broadcasting), 48kHz AAC, Twitch ingest
+
+### Audio Routing
+- Desktop Audio → live tracks only (1, 7, 8), not on VOD track 2
+- Mic → all tracks (commentary belongs in VOD)
+- Spotify → all tracks except VOD track 2 (DMCA protection)
+- Window captures: `capture_audio` disabled (Desktop Audio handles system audio — no duplication)
+
+### Recording
+MKV (advanced) / hybrid MP4 (fallback) — crash-safe format. H.265 AMF encoder.
 
 ## Version Control
 
