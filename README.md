@@ -1,11 +1,16 @@
 # NeoTheFox98 — Streaming Project
 
+OBS streaming config, overlays, automation scripts, and Twitch integration for `neothefox98`.
+
+**GitHub**: `https://github.com/NeotericGamer98/streaming` (private)
+
 ## Directory Structure
 
 ```
 Streaming/                          ← git repo root
+├── CHANGELOG.md                    (release history)
+├── README.md                       (this file)
 ├── config.ps1.example              (copy to config.ps1, fill in secrets — gitignored)
-├── config.ps1                      (your secrets — NOT committed)
 ├── go-live.ps1                     ← one-command launcher
 ├── .gitignore
 ├── .gitattributes
@@ -22,55 +27,55 @@ Streaming/                          ← git repo root
 │   └── twitch-raid.mp3
 ├── scripts/
 │   ├── README.md
-│   └── backup-obs-scenes.ps1       (timestamped backups, keeps last 20)
+│   ├── backup-obs-scenes.ps1       (timestamped backups, keeps last 20)
+│   ├── obs-audio-vis.ps1           (audio level overlay daemon)
+│   └── start-stream-mode.ps1       (full stream mode launcher)
 ├── twitch/
 │   └── README.md
-├── logs/                           (auto-created by go-live.ps1 — gitignored)
-├── backups/                        (auto-created by backup script — gitignored)
-└── README.md                       (this file)
+├── logs/                           (auto-created — gitignored)
+└── backups/                        (auto-created — gitignored)
 ```
 
 ## Quick Start
 
 ```powershell
-# ONE command — starts stream monitor + optional Spotify poller, logs everything:
+# ONE command — starts stream monitor + Spotify + audio visualizer:
 .\go-live.ps1
 
-# Without Spotify:
-.\go-live.ps1 -NoSpotify
-
-# With custom Starting Soon timer:
-.\go-live.ps1 -Minutes 15
+# Options:
+.\go-live.ps1 -NoSpotify          # skip music poller
+.\go-live.ps1 -NoAudioVis         # skip audio visualizer
+.\go-live.ps1 -Minutes 15         # custom Starting Soon timer
 ```
 
 Then go to OBS and hit "Start Streaming". The monitor auto-switches scenes.
 
-## OBS Automation Scripts
+## OBS Automation Hub
 
-Located at: `.config/opencode/modules/obs/scripts/`
+All automation scripts live at `.config/opencode/modules/obs/scripts/` and source `Streaming\config.ps1` for shared settings. Scripts in `Streaming/scripts/` are standalone launchers and daemons.
 
-All scripts source `Streaming\config.ps1` for shared settings (OBS host, port, password, paths).
-
-| Script | Purpose |
-|--------|---------|
-| `obs-preflight.ps1` / `.exe` | **Preflight** — validates OBS config, scenes, audio routing, overlays, disk space before go-live |
-| `obs-stream-monitor.ps1` | **Daemon** — polls OBS every 2s, auto-switches scenes (the workhorse) |
-| `go-live.ps1` | **Launcher** — starts monitor + Spotify, handles restarts, logs to `logs/` |
-| `spotify-now-playing.ps1` | Polls Spotify window title → writes `overlays/np-data.js` |
-| `obs-scene.ps1` | One-time: creates "Starting Soon" scene in OBS via WebSocket |
-| `obs-update-starting-soon.ps1` | Rebuilds "Starting Soon" browser source |
-| `obs-add-brb-endscene.ps1` | One-time: adds "Be Back Soon" + "End of Stream" scenes to JSON |
-| `obs-add-techdif-scene.ps1` | One-time: adds "Technical Difficulties" scene to JSON |
-| `obs-setup.ps1` | One-time: replaces StreamElements alerts with Twitch native alert box |
-| `obs-optimize.ps1` | One-time: configures OBS for 1080p60 |
-| `obs-verify.ps1` / `obs-verify2.ps1` | Check OBS WebSocket connectivity |
-| `obs-audit.ps1` | Full OBS configuration audit |
-| `obs-dbg.ps1` | Raw WebSocket debug tool |
-| `obs-test.ps1` | Quick connectivity test |
+| Script | Location | Purpose |
+|--------|----------|---------|
+| `obs-preflight.ps1` / `.exe` | hub | Preflight — validates OBS config, scenes, audio, overlays, disk before go-live |
+| `obs-stream-monitor.ps1` | hub | Daemon — polls OBS every 2s, auto-switches scenes |
+| `go-live.ps1` | repo root | Launcher — starts monitor + Spotify + audio vis, handles restarts, logs output |
+| `spotify-now-playing.ps1` | hub | Polls Spotify window title → writes `overlays/np-data.js` |
+| `obs-audio-vis.ps1` | `repo/scripts/` | Daemon — writes audio levels to `overlays/audio-levels.js` |
+| `start-stream-mode.ps1` | `repo/scripts/` | Launcher — full stream mode with all daemons |
+| `obs-scene.ps1` | hub | One-time: creates Starting Soon scene in OBS |
+| `obs-update-starting-soon.ps1` | hub | Rebuilds Starting Soon browser source |
+| `obs-add-brb-endscene.ps1` | hub | One-time: adds BRB + End of Stream scenes |
+| `obs-add-techdif-scene.ps1` | hub | One-time: adds Technical Difficulties scene |
+| `obs-setup.ps1` | hub | One-time: replaces StreamElements alerts with Twitch native alert box |
+| `obs-optimize.ps1` | hub | One-time: configures OBS for 1080p60 |
+| `obs-verify.ps1` / `obs-verify2.ps1` | hub | Check OBS WebSocket connectivity |
+| `obs-audit.ps1` | hub | Full OBS configuration audit |
+| `obs-dbg.ps1` | hub | Raw WebSocket debug tool |
+| `obs-test.ps1` | hub | Quick connectivity test |
 
 ## Twitch API Module
 
-Located at: `.config/opencode/modules/obs/twitch/`
+Located at `.config/opencode/modules/obs/twitch/`.
 
 | File | Purpose |
 |------|---------|
@@ -94,25 +99,30 @@ Register-ScheduledTask -TaskName "OBS Scene Backup" -Action $action -Trigger $tr
 
 ## Configuration
 
-All shared settings live in `Streaming\config.ps1`:
+All shared settings live in `Streaming\config.ps1`. Copy `config.ps1.example` → `config.ps1` and fill in your OBS WebSocket password. The real `config.ps1` is gitignored.
 
 | Variable | Default | What it controls |
 |----------|---------|-----------------|
 | `$OBS_Host` | `localhost` | OBS WebSocket host |
 | `$OBS_Port` | `4455` | OBS WebSocket port |
 | `$OBS_Password` | `"your-password"` | OBS WebSocket auth |
+| `$Streaming_Root` | `$env:USERPROFILE\Streaming` | Root directory |
+| `$Overlays_Dir` | `$Streaming_Root\overlays` | Browser source files |
+| `$Assets_Dir` | `$Streaming_Root\assets` | Images, audio |
+| `$Logs_Dir` | `$Streaming_Root\logs` | Runtime logs |
+| `$Backups_Dir` | `$Streaming_Root\backups` | Scene backups |
+| `$Scripts_Dir` | `$Streaming_Root\scripts` | Local scripts |
 | `$Monitor_PollIntervalMs` | `2000` | Stream monitor poll rate |
 | `$Monitor_TechDiffTimeoutSec` | `60` | Wait before End of Stream |
 | `$Spotify_PollIntervalSec` | `5` | Spotify title poll rate |
-
-Copy `config.ps1.example` → `config.ps1` and set your password. The real `config.ps1` is gitignored.
 
 ## Overlay Features
 
 - **Shared theme**: `overlays/overlay-theme.css` — CSS custom properties, GPU-accelerated animations, `prefers-reduced-motion` support
 - **Configurable timer**: `starting-soon.html?minutes=N` (default 5, max 120)
-- **Now Playing**: Run `go-live.ps1` (or `spotify-now-playing.ps1` standalone) to show current Spotify track in the overlay
-- **Auto crash handling**: Stream monitor detects drops → "Technical Difficulties" → auto-recover or End of Stream
+- **Now Playing**: Spotify track title displayed bottom-left via `np-data.js`
+- **Audio Visualizer**: Rainbow spectrum bars driven by `audio-levels.js`
+- **Auto crash handling**: Stream monitor detects drops → Technical Difficulties → auto-recover or End of Stream
 
 ## Stream Monitor State Machine
 
@@ -125,22 +135,34 @@ TECH_DIFF ──60s timeout──> END OF STREAM (final)
 
 ## OBS Scene Collection
 
-6 scenes in order: Starting Soon → Streaming → Just Chatting → Be Back Soon → Technical Difficulties → End of Stream
+6 scenes in order:
 
-Profile: `Discord_Capture` — 1920x1080 @ 60fps, AMF H.264 @ 6000 Kbps (Enhanced Broadcasting), 48kHz AAC, Twitch ingest
+1. **Starting Soon** — countdown overlay, now-playing slot, audio visualizer
+2. **Streaming** — display capture, game/desktop content
+3. **Just Chatting** — mic, Spotify, VM, PNGtuber
+4. **Be Back Soon** — overlay (shutdown when hidden, reloads on show)
+5. **Technical Difficulties** — overlay (shutdown when hidden, reloads on show)
+6. **End of Stream** — overlay (shutdown when hidden, reloads on show)
+
+Profile: `Discord_Capture` — 1920×1080 @ 60fps, AMF H.264 @ 6000 Kbps (Enhanced Broadcasting), 48kHz AAC, Twitch ingest
 
 ### Audio Routing
-- Desktop Audio → live tracks only (1, 7, 8), not on VOD track 2
-- Mic → all tracks (commentary belongs in VOD)
-- Spotify → all tracks except VOD track 2 (DMCA protection)
-- Window captures: `capture_audio` disabled (Desktop Audio handles system audio — no duplication)
+- **Desktop Audio** → live tracks only (1, 7, 8) — not on VOD track 2
+- **Mic** → all tracks (commentary belongs in VOD)
+- **Spotify** → all tracks except VOD track 2 (DMCA protection)
+- **Window captures**: `capture_audio` disabled (Desktop Audio handles system audio — no phasing)
 
 ### Recording
-MKV (advanced) / hybrid MP4 (fallback) — crash-safe format. H.265 AMF encoder.
+MKV (advanced) / hybrid MP4 (fallback) — crash-safe format.
 
 ## Version Control
 
-This repo tracks everything in `Streaming/` except:
-- `config.ps1` (secrets) — use `config.ps1.example` as a template
-- `overlays/np-data.js` (generated every 5s)
-- `logs/` and `backups/` (runtime data)
+Private repo at `https://github.com/NeotericGamer98/streaming`. Tracked in `Streaming/` directory, excluded:
+
+- `config.ps1` (secrets) — use `config.ps1.example` as template
+- `overlays/np-data.js`, `overlays/audio-levels.js` — generated every 5s
+- `logs/`, `backups/` — runtime data
+- `*.exe` — compiled PS2EXE binaries
+- `Thumbs.db`, `.DS_Store`, `*.swp`, `*.swo`, `*~`, `.vscode/`, `.idea/`, `*.sublime-*`
+
+See `CHANGELOG.md` for release history.

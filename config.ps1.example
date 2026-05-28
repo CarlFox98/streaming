@@ -10,6 +10,7 @@ $Overlays_Dir = "$Streaming_Root\overlays"
 $Assets_Dir = "$Streaming_Root\assets"
 $Logs_Dir = "$Streaming_Root\logs"
 $Backups_Dir = "$Streaming_Root\backups"
+$Scripts_Dir = "$Streaming_Root\scripts"
 
 $Monitor_PollIntervalMs = 2000
 $Monitor_TechDiffTimeoutSec = 60
