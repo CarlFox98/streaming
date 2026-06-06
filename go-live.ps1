@@ -262,6 +262,20 @@ if ($Timer_SceneSwitchAuto) {
     Write-Ok "Auto scene switch scheduled (job: $($timerJob.Id), switch to '$Scene_Streaming' in ${Minutes}m)"
 }
 
+# ---- save daemon PIDs for cross-session kill by end-stream.ps1 ----
+try {
+    Start-Sleep -Seconds 2
+    $runDir = Join-Path $scriptRoot "run"
+    if (-not (Test-Path $runDir)) { New-Item -ItemType Directory -Path $runDir -Force | Out-Null }
+    $pidFile = Join-Path $runDir "daemon-pids.json"
+    $pids = Get-CimInstance Win32_Process -Filter "Name = 'powershell.exe'" | Where-Object { $_.ParentProcessId -eq $PID } | Select-Object -ExpandProperty ProcessId
+    $daemonInfo = @{
+        pids = @($pids)
+        recordedAt = (Get-Date -Format "yyyy-MM-dd HH:mm:ss")
+    }
+    $daemonInfo | ConvertTo-Json -Compress | Set-Content $pidFile -Encoding utf8 -NoNewline
+} catch {}
+
 Write-Host ""
 
 Write-Host "  ======================================" -ForegroundColor Cyan

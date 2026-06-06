@@ -192,7 +192,7 @@ if ($spotRunning) {
     Write-Step "Launching Spotify (ShellExecute)..."
     $spotExe = "${env:APPDATA}\Spotify\Spotify.exe"
     # Spotify has shell integration dependencies, try ShellExecute first
-    $spotProc = Start-Process -FilePath $spotExe -PassThru
+    $spotProc = Start-Process -FilePath $spotExe -WindowStyle Minimized -PassThru
     $spotHwnd = Get-WindowHandle $spotProc
     if ($spotHwnd -ne [IntPtr]::Zero) {
         Write-Ok "  Spotify window appeared - moving to streaming desktop"

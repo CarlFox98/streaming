@@ -72,7 +72,7 @@ function Invoke-Recompile {
         }
         $title = [System.IO.Path]::GetFileNameWithoutExtension($exe.Name)
         try {
-            $null = Invoke-ps2exe -inputFile $srcPath -outputFile $exePath -title $title -version "0.2.2.0" -noOutput -noError
+            $null = Invoke-ps2exe -inputFile $srcPath -outputFile $exePath -title $title -version "0.2.2.0"
             Write-UpdateLog "  Recompiled: $($exe.Name)"
         } catch {
             Write-UpdateLog "  FAILED: $($exe.Name) - $($_.Exception.Message)"

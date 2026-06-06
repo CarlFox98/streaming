@@ -29,6 +29,29 @@ Write-Host "  ======================================" -ForegroundColor Cyan
 Write-Host ""
 
 Write-Step "Stopping background daemons..."
+
+function Stop-DaemonByPidFile {
+    $pidFile = Join-Path $scriptRoot "run" "daemon-pids.json"
+    if (-not (Test-Path $pidFile)) { return $false }
+    try {
+        $info = Get-Content $pidFile -Raw | ConvertFrom-Json
+        if (-not $info.pids -or @($info.pids).Count -eq 0) { return $false }
+        $killed = 0
+        foreach ($pid in $info.pids) {
+            try {
+                Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+                $killed++
+            } catch {}
+        }
+        if ($killed -gt 0) {
+            Write-Info "PID file" "Killed $killed daemon process(es)"
+            Remove-Item $pidFile -Force -ErrorAction SilentlyContinue
+            return $killed
+        }
+    } catch {}
+    return $false
+}
+
 $jobNames = @("StreamMonitor", "SpotifyPoller", "AudioVis", "TwitchChat", "HotkeyDaemon", "TimerSceneSwitch")
 $stopped = 0
 foreach ($name in $jobNames) {
@@ -40,6 +63,11 @@ foreach ($name in $jobNames) {
         Write-Info "Stopped" "$name"
         $stopped++
     }
+}
+
+if ($stopped -eq 0) {
+    $pidKilled = Stop-DaemonByPidFile
+    if ($pidKilled) { $stopped = $pidKilled }
 }
 Write-Ok "Stopped $stopped background job(s)"
 
