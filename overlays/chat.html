@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="overlay-theme.css">
+<style>
+body {
+  width: 1920px; height: 1080px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 40px;
+  font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+#chat-container {
+  position: relative;
+  width: 420px;
+  max-height: 360px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column-reverse;
+}
+
+.chat-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  margin-bottom: 4px;
+  background: rgba(15, 12, 41, 0.75);
+  border-left: 3px solid var(--brand-dim);
+  border-radius: 0 6px 6px 0;
+  animation: msgIn 0.3s ease-out;
+  will-change: transform, opacity;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.chat-time {
+  font-size: 11px;
+  color: var(--text-subtle);
+  white-space: nowrap;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.chat-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.chat-user {
+  font-size: 13px;
+  font-weight: 700;
+  display: inline;
+}
+
+.chat-text {
+  font-size: 13px;
+  color: var(--text);
+  display: inline;
+  word-wrap: break-word;
+  line-height: 1.4;
+}
+
+.chat-badges {
+  display: inline-flex;
+  gap: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.chat-badge {
+  width: 16px; height: 16px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.connection-banner {
+  font-size: 11px;
+  color: var(--text-subtle);
+  padding: 4px 12px;
+  text-align: center;
+  background: rgba(15, 12, 41, 0.5);
+  border-radius: 4px;
+  margin-bottom: 4px;
+  animation: msgIn 0.3s ease-out;
+}
+
+.connection-banner.disconnected {
+  color: #ff4444;
+  border-left: 3px solid #ff4444;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-msg { animation: none; }
+}
+</style>
+</head>
+<body>
+<div id="chat-container"></div>
+
+<script>
+(function() {
+  var container = document.getElementById('chat-container');
+  var lastMsgCount = 0;
+  var pollInterval = 2000;
+
+  function fetchChat() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'chat-data.json?' + Date.now(), true);
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      try {
+        var data = JSON.parse(xhr.responseText);
+        renderMessages(data);
+      } catch(e) {}
+    };
+    xhr.send();
+  }
+
+  function renderMessages(data) {
+    var msgs = data.messages || [];
+    if (msgs.length === lastMsgCount && data.connected !== false) return;
+
+    lastMsgCount = msgs.length;
+    var html = '';
+    var len = msgs.length;
+
+    if (!data.connected) {
+      html += '<div class="connection-banner disconnected">Disconnected from chat</div>';
+    }
+
+    for (var i = len - 1; i >= Math.max(0, len - 15); i--) {
+      var m = msgs[i];
+      var badgesHtml = '';
+      if (m.badges) {
+        var badgeList = m.badges.split(',');
+        for (var b = 0; b < badgeList.length; b++) {
+          var parts = badgeList[b].split('/');
+          if (parts.length === 2) {
+            badgesHtml += '<img class="chat-badge" src="https://static-cdn.jtvnw.net/badges/v1/' +
+              (parts[0] === 'broadcaster' ? 'badge-broadcaster' :
+               parts[0] === 'mod' ? 'badge-mod' :
+               parts[0] === 'vip' ? 'badge-vip' :
+               parts[0] === 'subscriber' ? 'badge-subscriber' :
+               parts[0] === 'turbo' ? 'badge-turbo' : parts[0]) + '/1" alt="' + parts[0] + '">';
+          }
+        }
+      }
+      html += '<div class="chat-msg">' +
+        '<span class="chat-time">' + escapeHtml(m.timestamp) + '</span>' +
+        '<div class="chat-body">' +
+          '<div class="chat-user" style="color:' + (m.color || '#FFFFFF') + '">' +
+            badgesHtml +
+            escapeHtml(m.user) +
+          '</div>' +
+          '<span class="chat-text">: ' + escapeHtml(m.message) + '</span>' +
+        '</div>' +
+      '</div>';
+    }
+    container.innerHTML = html;
+  }
+
+  function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(text));
+    return div.innerHTML;
+  }
+
+  fetchChat();
+  setInterval(fetchChat, pollInterval);
+})();
+</script>
+</body>
+</html>

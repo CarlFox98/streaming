@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="stylesheet" href="overlay-theme.css">
+<style>
+body {
+  width: 1920px; height: 1080px;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  overflow: hidden;
+}
+
+#alert-container {
+  position: relative;
+  width: 600px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.alert-box {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 24px 40px;
+  background: rgba(15, 12, 41, 0.85);
+  border: 1px solid var(--brand-dim);
+  border-radius: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 40px var(--brand-dim), inset 0 0 40px rgba(232, 129, 62, 0.05);
+  animation: alertIn 0.6s ease-out, alertOut 0.6s ease-in 7s forwards;
+  will-change: transform, opacity;
+}
+
+@keyframes alertIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes alertOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(-30px) scale(0.95); }
+}
+
+.alert-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  animation: iconPop 0.4s ease-out 0.2s both;
+}
+
+@keyframes iconPop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+.alert-user {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--brand-light);
+  text-shadow: 0 0 20px var(--brand-dim);
+  margin-bottom: 4px;
+}
+
+.alert-detail {
+  font-size: 18px;
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.4;
+}
+
+.alert-detail strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.alert-tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.alert-tag.sub {
+  background: #9146ff;
+  color: white;
+}
+
+.alert-tag.raid {
+  background: #e91916;
+  color: white;
+}
+
+.alert-tag.follow {
+  background: #1db954;
+  color: white;
+}
+
+.alert-tag.gift {
+  background: #ff6b35;
+  color: white;
+}
+
+#queue-indicator {
+  position: fixed;
+  bottom: 30px;
+  font-size: 14px;
+  color: var(--text-subtle);
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert-box { animation: none; opacity: 1; }
+}
+</style>
+</head>
+<body>
+<div id="alert-container"></div>
+<div id="queue-indicator"></div>
+
+<script>
+(function() {
+  var container = document.getElementById('alert-container');
+  var queueEl = document.getElementById('queue-indicator');
+  var displayQueue = [];
+  var currentAlert = null;
+  var currentTimer = null;
+  var pollInterval = 2000;
+
+  var alertConfig = {
+    sub:       { icon: '\u2B50', tag: 'NEW SUB', tagClass: 'sub', detail: function(d) { return 'Tier ' + (d.tier === '1000' ? '1' : d.tier === '2000' ? '2' : '3') + ' \u2022 Month ' + d.months; } },
+    resub:     { icon: '\u2B50', tag: 'RESUB', tagClass: 'sub', detail: function(d) { return 'Tier ' + (d.tier === '1000' ? '1' : d.tier === '2000' ? '2' : '3') + ' \u2022 ' + d.months + ' months' + (d.message ? ': ' + d.message : ''); } },
+    subgift:   { icon: '\uD83C\uDF81', tag: 'GIFT SUB', tagClass: 'gift', detail: function(d) { return 'Gifted a Tier ' + (d.tier === '1000' ? '1' : d.tier === '2000' ? '2' : '3') + ' sub to ' + (d.recipient || 'someone'); } },
+    raid:      { icon: '\uD83D\uDE80', tag: 'RAID', tagClass: 'raid', detail: function(d) { return 'Raided with ' + (d.viewers || '?') + ' viewers!'; } },
+    follow:    { icon: '\u2764\uFE0F', tag: 'NEW FOLLOWER', tagClass: 'follow', detail: function() { return 'Thanks for the follow!'; } }
+  };
+
+  function fetchAlerts() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', 'alerts-queue.json?' + Date.now(), true);
+    xhr.onload = function() {
+      if (xhr.status !== 200) return;
+      try {
+        var data = JSON.parse(xhr.responseText);
+        processAlerts(data.alerts || []);
+      } catch(e) {}
+    };
+    xhr.send();
+  }
+
+  function processAlerts(alerts) {
+    if (alerts.length === 0) {
+      queueEl.textContent = '';
+      return;
+    }
+
+    var knownIds = displayQueue.map(function(a) { return a._id; });
+    for (var i = 0; i < alerts.length; i++) {
+      var a = alerts[i];
+      a._id = a.user + '_' + a.type + '_' + a.timestamp;
+      if (knownIds.indexOf(a._id) === -1 && displayQueue.indexOf(a) === -1) {
+        displayQueue.push(a);
+      }
+    }
+
+    queueEl.textContent = displayQueue.length > 1 ? '+' + (displayQueue.length - 1) + ' more' : '';
+
+    if (!currentAlert && displayQueue.length > 0) {
+      showNextAlert();
+    }
+  }
+
+  function showNextAlert() {
+    if (displayQueue.length === 0) {
+      currentAlert = null;
+      return;
+    }
+
+    var alert = displayQueue.shift();
+    currentAlert = alert;
+    renderAlert(alert);
+
+    if (currentTimer) clearTimeout(currentTimer);
+    currentTimer = setTimeout(function() {
+      container.innerHTML = '';
+      currentAlert = null;
+      queueEl.textContent = displayQueue.length > 0 ? '+' + displayQueue.length + ' more' : '';
+      setTimeout(showNextAlert, 500);
+    }, 8000);
+  }
+
+  function renderAlert(alert) {
+    var cfg = alertConfig[alert.type];
+    if (!cfg) {
+      container.innerHTML = '';
+      return;
+    }
+
+    var detail = cfg.detail(alert);
+    container.innerHTML =
+      '<div class="alert-box">' +
+        '<div class="alert-icon">' + cfg.icon + '</div>' +
+        '<div class="alert-tag ' + cfg.tagClass + '">' + cfg.tag + '</div>' +
+        '<div class="alert-user">' + escapeHtml(alert.user) + '</div>' +
+        '<div class="alert-detail">' + detail + '</div>' +
+      '</div>';
+  }
+
+  function escapeHtml(text) {
+    var d = document.createElement('div');
+    d.appendChild(document.createTextNode(text || ''));
+    return d.innerHTML;
+  }
+
+  fetchAlerts();
+  setInterval(fetchAlerts, pollInterval);
+})();
+</script>
+</body>
+</html>
