@@ -12,11 +12,8 @@ param(
     [switch]$Force
 )
 
-$repoOwner = "NeotericGamer98"
-$repoName = "streaming"
 $repoDir = "$env:USERPROFILE\Streaming"
 $repoBranch = "master"
-$apiUrl = "https://api.github.com/repos/${repoOwner}/${repoName}/commits/${repoBranch}"
 
 $exes = @(
     @{Name="go-live.exe";     Source="go-live.ps1"},
@@ -24,7 +21,8 @@ $exes = @(
     @{Name="Stream Mode.exe"; Source="scripts\start-stream-mode.ps1"}
 )
 
-$updaterLog = Join-Path $repoDir "logs" "update-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+$logDir = Join-Path $repoDir "logs"
+$updaterLog = Join-Path $logDir "update-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
 
 function Write-UpdateLog {
     param($Msg)
@@ -85,37 +83,57 @@ function Invoke-Recompile {
 }
 
 $localCommit = Get-LocalCommit
-$logDir = Split-Path $updaterLog -Parent
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
 
 try {
-    Write-UpdateLog "Checking GitHub for updates..."
-    $response = Invoke-RestMethod -Uri $apiUrl -Method Get -TimeoutSec 10
-    $remoteSha = $response.sha
-
-    if (-not $remoteSha) {
-        Write-UpdateLog "Could not determine remote commit SHA"
-        return
+    Write-UpdateLog "Fetching latest from GitHub..."
+    $prevDir = Get-Location
+    try {
+        Set-Location -LiteralPath $repoDir
+        git fetch origin $repoBranch 2>&1 | Out-Null
+    } finally {
+        Set-Location -LiteralPath $prevDir
     }
 
-    Write-UpdateLog "Local: $($localCommit.Substring(0, 7))  Remote: $($remoteSha.Substring(0, 7))"
+    if ($LASTEXITCODE -ne 0) {
+        Write-UpdateLog "git fetch failed - check network or remote URL"
+        exit 1
+    }
 
-    $needsUpdate = $Force -or (-not $localCommit) -or ($localCommit -ne $remoteSha)
+    $prevDir = Get-Location
+    try {
+        Set-Location -LiteralPath $repoDir
+        $remoteSha = git rev-parse "origin/$repoBranch" 2>$null
+        $needsUpdate = $Force -or (-not $localCommit) -or ($localCommit -ne $remoteSha)
+    } finally {
+        Set-Location -LiteralPath $prevDir
+    }
+
+    if (-not $remoteSha) {
+        Write-UpdateLog "Could not determine remote commit SHA (no remote tracking branch?)"
+        exit 1
+    }
+
+    $localShort = if ($localCommit) { $localCommit.Substring(0, 7) } else { "none" }
+    Write-UpdateLog "Local: ${localShort}  Remote: $($remoteSha.Substring(0, 7))"
 
     if (-not $needsUpdate) {
         Write-UpdateLog "Already up to date."
-        return
+        exit 0
     }
 
-    Write-UpdateLog "Update available. Pulling from GitHub..."
-    Set-Location -LiteralPath $repoDir
-    git fetch origin $repoBranch 2>&1 | Out-Null
-    $behind = git rev-list --count "HEAD..origin/$repoBranch" 2>&1
-    if ($behind -gt 0) {
-        git pull origin $repoBranch 2>&1 | ForEach-Object { Write-UpdateLog "  git: $_" }
-        Write-UpdateLog "Pulled $behind new commit(s)"
-    } else {
-        Write-UpdateLog "Local branch is ahead or equal (behind count: $behind), recompiling anyway"
+    $prevDir = Get-Location
+    try {
+        Set-Location -LiteralPath $repoDir
+        Write-UpdateLog "Pulling changes..."
+        $pullOut = git pull origin $repoBranch 2>&1
+        foreach ($line in $pullOut) { Write-UpdateLog "  git: $line" }
+        if ($LASTEXITCODE -ne 0 -or -not $pullOut) {
+            Write-UpdateLog "git pull failed - local changes may conflict"
+            exit 1
+        }
+    } finally {
+        Set-Location -LiteralPath $prevDir
     }
 
     $recompiled = Invoke-Recompile
@@ -123,8 +141,10 @@ try {
         Update-BuildInfo $remoteSha
         Write-UpdateLog "Update complete."
     } else {
-        Write-UpdateLog "Update partial — some EXEs may need manual recompile."
+        Write-UpdateLog "Update partial - some EXEs may need manual recompile."
     }
+    exit 0
 } catch {
-    Write-UpdateLog "Update check failed: $($_.Exception.Message)"
+    Write-UpdateLog "Update failed: $($_.Exception.Message)"
+    exit 1
 }
