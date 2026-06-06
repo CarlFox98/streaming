@@ -37,5 +37,21 @@ $Scene_TechDifficulties = "Technical Difficulties"
 # --- Scene Collection ---
 $SceneCollectionName = "Untitled"
 
+# --- Hotkeys (empty string = disable that hotkey) ---
+$Hotkey_BRB = "Ctrl+Shift+B"
+$Hotkey_Streaming = "Ctrl+Shift+S"
+$Hotkey_TechDiff = "Ctrl+Shift+T"
+$Hotkey_EndStream = "Ctrl+Shift+E"
+$Hotkey_Mute = "Ctrl+Shift+M"
+$Hotkey_Record = "Ctrl+Shift+R"
+$Hotkey_PollIntervalMs = 200
+
+# --- AFK Detection ---
+$AFK_TimeoutMinutes = 5
+$AFK_PollIntervalMs = 3000
+
+# --- Timer → Auto Scene ---
+$Timer_SceneSwitchAuto = $true
+
 # --- Log Retention ---
 $LogRetentionMaxFiles = 50
