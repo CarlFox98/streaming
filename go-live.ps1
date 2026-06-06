@@ -15,6 +15,7 @@
 param(
     [switch]$NoSpotify,
     [switch]$NoAudioVis,
+    [switch]$NoChat,
     [int]$Minutes = 30
 )
 
@@ -85,6 +86,26 @@ if (-not $NoAudioVis -and -not (Test-Path $audioVisScript)) {
     $NoAudioVis = $true
 }
 
+$chatDaemonScript = "$env:USERPROFILE\.config\opencode\modules\obs\twitch\twitch-chat-daemon.ps1"
+if (-not $NoChat -and -not (Test-Path $chatDaemonScript)) {
+    Write-Warning "Chat daemon script not found, skipping: $chatDaemonScript"
+    $NoChat = $true
+}
+
+# ---- log rotation ----
+Write-Step "Rotating old logs..."
+try {
+    $logFiles = Get-ChildItem "$Logs_Dir\*.log" | Sort-Object LastWriteTime -Descending
+    $toRemove = $logFiles | Select-Object -Skip $LogRetentionMaxFiles
+    foreach ($f in $toRemove) {
+        Remove-Item $f.FullName -Force
+        Write-Info "Removed old log" "$($f.Name)"
+    }
+    Write-Ok "Log rotation done ($(@($logFiles).Count) files, keeping $LogRetentionMaxFiles)"
+} catch {
+    Write-Info "Log rotation" "Skipped ($($_.Exception.Message))"
+}
+
 Write-Ok "All prerequisites met"
 Write-Host ""
 
@@ -119,6 +140,16 @@ if (-not $NoAudioVis) {
     Write-Ok "Audio visualizer started (Job ID: $($audioVisJob.Id), log: $(Split-Path $audioVisLog -Leaf))"
 }
 
+if (-not $NoChat) {
+    Write-Step "Launching Twitch Chat daemon..."
+    $chatLog = Join-Path $Logs_Dir "twitch-chat-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+    $chatJob = Start-Job -Name "TwitchChat" -ScriptBlock {
+        param($ScriptPath, $LogPath)
+        & $ScriptPath *>&1 | Out-File $LogPath -Encoding utf8 -Append
+    } -ArgumentList $chatDaemonScript, $chatLog
+    Write-Ok "Twitch Chat daemon started (Job ID: $($chatJob.Id), log: $(Split-Path $chatLog -Leaf))"
+}
+
 Write-Host ""
 
 # ---- summary ----
@@ -132,6 +163,9 @@ if (-not $NoSpotify) {
 }
 if (-not $NoAudioVis) {
     Write-Info "Audio visualizer"      "Running"
+}
+if (-not $NoChat) {
+    Write-Info "Twitch Chat"           "Running"
 }
 Write-Info "Starting Soon timer"     "$Minutes min"
 Write-Info "Logs directory"          "$Logs_Dir"
@@ -148,7 +182,8 @@ Write-Host ""
 Write-Step "Monitoring processes. Press Ctrl+C to shut down cleanly."
 Write-Host ""
 
-$lastCheck = 0
+$startTime = [int](Get-Date -UFormat %s)
+$lastCheck = $startTime
 while ($true) {
     $s = Get-Job -Name "StreamMonitor" -ErrorAction SilentlyContinue
     $sf = $s.State -eq "Failed"
@@ -192,10 +227,24 @@ while ($true) {
         }
     }
 
+    if (-not $NoChat) {
+        $cj = Get-Job -Name "TwitchChat" -ErrorAction SilentlyContinue
+        if ($cj.State -eq "Failed") {
+            Write-Host "  $(Get-Date -Format 'HH:mm:ss') [WARN] Twitch Chat daemon failed. Restarting..." -ForegroundColor Yellow
+            $cj | Remove-Job -Force
+            $chatJob = Start-Job -Name "TwitchChat" -ScriptBlock {
+                param($ScriptPath, $LogPath)
+                & $ScriptPath *>&1 | Out-File $LogPath -Encoding utf8 -Append
+            } -ArgumentList $chatDaemonScript, $chatLog
+        }
+    }
+
     # Periodic status line every 30s
     $now = [int](Get-Date -UFormat %s)
+    if ($lastCheck -eq 0) { $lastCheck = $now }
     if ($now - $lastCheck -ge 30) {
-        Write-Host "  $(Get-Date -Format 'HH:mm:ss') All systems OK. Running for $(($now - $lastCheck))s..." -ForegroundColor DarkGray
+        $elapsed = $now - $startTime
+        Write-Host "  $(Get-Date -Format 'HH:mm:ss') All systems OK. Running for ${elapsed}s..." -ForegroundColor DarkGray
         $lastCheck = $now
     }
 

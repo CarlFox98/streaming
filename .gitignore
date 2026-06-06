@@ -11,7 +11,6 @@ backups/
 
 # Compiled executables from PS2EXE
 *.exe
-!scripts/*.ps1
 
 # OS junk
 Thumbs.db

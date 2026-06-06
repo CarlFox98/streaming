@@ -1,17 +1,41 @@
 # Copy this file to config.ps1 and fill in your values.
 # config.ps1 is gitignored so secrets stay local.
 
+# --- OBS WebSocket ---
 $OBS_Host = "localhost"
 $OBS_Port = 4455
 $OBS_Password = "your-obs-websocket-password-here"
 
+# --- Paths ---
 $Streaming_Root = "$env:USERPROFILE\Streaming"
 $Overlays_Dir = "$Streaming_Root\overlays"
 $Assets_Dir = "$Streaming_Root\assets"
 $Logs_Dir = "$Streaming_Root\logs"
 $Backups_Dir = "$Streaming_Root\backups"
-$Scripts_Dir = "$Streaming_Root\scripts"
 
+# --- Stream Monitor ---
 $Monitor_PollIntervalMs = 2000
 $Monitor_TechDiffTimeoutSec = 60
+
+# --- Spotify Now Playing ---
 $Spotify_PollIntervalSec = 5
+
+# --- Audio Visualizer ---
+$Monitor_AudioVisIntervalMs = 150
+
+# --- Twitch ---
+$Twitch_AlertBoxUrl = "https://www.twitch.tv/yourchannel/alertbox/your-uuid-here"
+
+# --- Scene Names ---
+$Scene_StartingSoon = "Starting Soon"
+$Scene_Streaming = "Streaming"
+$Scene_JustChatting = "Just Chatting"
+$Scene_BeBackSoon = "Be Back Soon"
+$Scene_EndOfStream = "End of Stream"
+$Scene_TechDifficulties = "Technical Difficulties"
+
+# --- Scene Collection ---
+$SceneCollectionName = "Untitled"
+
+# --- Log Retention ---
+$LogRetentionMaxFiles = 50

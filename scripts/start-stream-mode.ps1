@@ -141,15 +141,22 @@ Write-Ok "Streaming desktop created"
 # ===== PHASE 3: Launch apps =====
 $script:streamDesktop = "Desktop 2"
 
-# go-live.exe
-$goLivePath = "$env:USERPROFILE\Streaming\go-live.exe"
-if (-not (Test-Path $goLivePath)) { Write-Fail "go-live.exe not found"; exit 1 }
-Write-Step "Starting go-live (CreateProcess)..."
-$psi = New-Object System.Diagnostics.ProcessStartInfo
-$psi.FileName = $goLivePath
-$psi.UseShellExecute = $false
-$psi.WorkingDirectory = "$env:USERPROFILE\Streaming"
-$gp = [System.Diagnostics.Process]::Start($psi)
+# go-live (exe preferred, ps1 fallback)
+$goLiveExe = "$env:USERPROFILE\Streaming\go-live.exe"
+$goLivePs1 = "$env:USERPROFILE\Streaming\go-live.ps1"
+if (Test-Path $goLiveExe) {
+    Write-Step "Starting go-live.exe (CreateProcess)..."
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $goLiveExe
+    $psi.UseShellExecute = $false
+    $psi.WorkingDirectory = "$env:USERPROFILE\Streaming"
+    $gp = [System.Diagnostics.Process]::Start($psi)
+} elseif (Test-Path $goLivePs1) {
+    Write-Step "Starting go-live.ps1 (PowerShell fallback)..."
+    $gp = Start-Process -FilePath "powershell" -ArgumentList "-ExecutionPolicy Bypass -File `"$goLivePs1`"" -PassThru
+} else {
+    Write-Fail "go-live.exe and go-live.ps1 not found"; exit 1
+}
 Write-Ok "go-live PID $($gp.Id)"
 
 # OBS
@@ -208,7 +215,8 @@ $glHwnd = Get-WindowHandle $gp
 if ($glHwnd -eq [IntPtr]::Zero) {
     Write-Fail "  go-live window not found - trying ShellExecute + move"
     $gp | Stop-Process -Force -ErrorAction SilentlyContinue
-    $gp = Start-Process -FilePath $goLivePath -PassThru
+    $fallbackExe = if (Test-Path $goLiveExe) { $goLiveExe } else { $goLivePs1 }
+    $gp = Start-Process -FilePath $fallbackExe -PassThru
     $glHwnd = Move-WindowToDesktop2 $gp
 }
 
