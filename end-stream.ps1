@@ -31,7 +31,7 @@ Write-Host ""
 
 # ---- 1. Stop background jobs ----
 Write-Step "Stopping background daemons..."
-$jobNames = @("StreamMonitor", "SpotifyPoller", "AudioVis", "TwitchChat")
+$jobNames = @("StreamMonitor", "SpotifyPoller", "AudioVis", "TwitchChat", "HotkeyDaemon", "TimerSceneSwitch")
 $stopped = 0
 foreach ($name in $jobNames) {
     $job = Get-Job -Name $name -ErrorAction SilentlyContinue
@@ -98,15 +98,61 @@ if (-not $KeepData) {
     Write-Ok "Removed $removed transient file(s)"
 }
 
-# ---- 4. Session summary ----
+# ---- 4. Stream summary ----
+Write-Step "Stream summary..."
+$chatDataFile = Join-Path $Overlays_Dir "chat-data.json"
+$alertsFile = Join-Path $Overlays_Dir "alerts-queue.json"
+
+$chatCount = 0
+$alertBreakdown = @{}
+$alertTotal = 0
+$streamDuration = "unknown"
+
+if (Test-Path $chatDataFile) {
+    try {
+        $chatData = Get-Content $chatDataFile -Raw | ConvertFrom-Json
+        $chatCount = @($chatData.messages).Count
+    } catch {}
+}
+
+if (Test-Path $alertsFile) {
+    try {
+        $alertData = Get-Content $alertsFile -Raw | ConvertFrom-Json
+        $alertTotal = @($alertData.alerts).Count
+        foreach ($a in $alertData.alerts) {
+            $key = $a.type
+            if (-not $alertBreakdown.ContainsKey($key)) { $alertBreakdown[$key] = 0 }
+            $alertBreakdown[$key]++
+        }
+    } catch {}
+}
+
+$monitorLogs = Get-ChildItem "$Logs_Dir\stream-monitor-*.log" | Sort-Object LastWriteTime -Descending
+if ($monitorLogs.Count -gt 0) {
+    $firstLog = $monitorLogs[-1]
+    $lastLog = $monitorLogs[0]
+    if ($firstLog.LastWriteTime -and $lastLog.LastWriteTime) {
+        $duration = $lastLog.LastWriteTime - $firstLog.LastWriteTime
+        $streamDuration = "$($duration.Hours)h $($duration.Minutes)m $($duration.Seconds)s"
+    }
+}
+
 Write-Host ""
 Write-Host "  ======================================" -ForegroundColor Cyan
-Write-Host "       STREAM ENDED                      " -ForegroundColor Cyan
+Write-Host "       STREAM SUMMARY                    " -ForegroundColor Cyan
 Write-Host "  ======================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Info "Jobs stopped"   "$stopped"
-Write-Info "Recording"      "$(if (-not $NoStopRecording) { 'Stopped' } else { 'Left running' })"
-Write-Info "Scene"           "$(if (-not $NoSceneSwitch) { "Switched to '$Scene_EndOfStream'" } else { 'Left as-is' })"
-Write-Info "Cleanup"        "$(if ($KeepData) { 'Kept' } else { 'Removed' })"
+Write-Info "Duration"        "$streamDuration"
+Write-Info "Chat messages"   "$chatCount"
+Write-Info "Alerts received" "$alertTotal"
+if ($alertBreakdown.Count -gt 0) {
+    $alertBreakdown.Keys | ForEach-Object {
+        Write-Info "  · $($_): " "$($alertBreakdown[$_])"
+    }
+}
+Write-Info "Jobs stopped"    "$stopped"
+Write-Info "Recording"       "$(if (-not $NoStopRecording) { 'Stopped' } else { 'Left running' })"
+Write-Info "Scene"            "$(if (-not $NoSceneSwitch) { "Switched to '$Scene_EndOfStream'" } else { 'Left as-is' })"
+Write-Info "Cleanup"         "$(if ($KeepData) { 'Kept' } else { 'Removed' })"
 Write-Host ""
 Write-Ok "All done. Good stream!"

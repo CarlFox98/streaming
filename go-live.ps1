@@ -16,6 +16,8 @@ param(
     [switch]$NoSpotify,
     [switch]$NoAudioVis,
     [switch]$NoChat,
+    [switch]$NoHotkeys,
+    [switch]$Force,
     [int]$Minutes = 30
 )
 
@@ -92,6 +94,12 @@ if (-not $NoChat -and -not (Test-Path $chatDaemonScript)) {
     $NoChat = $true
 }
 
+$hotkeyScript = "$env:USERPROFILE\.config\opencode\modules\obs\scripts\obs-hotkeys.ps1"
+if (-not $NoHotkeys -and -not (Test-Path $hotkeyScript)) {
+    Write-Warning "Hotkey daemon script not found, skipping: $hotkeyScript"
+    $NoHotkeys = $true
+}
+
 # ---- log rotation ----
 Write-Step "Rotating old logs..."
 try {
@@ -104,6 +112,45 @@ try {
     Write-Ok "Log rotation done ($(@($logFiles).Count) files, keeping $LogRetentionMaxFiles)"
 } catch {
     Write-Info "Log rotation" "Skipped ($($_.Exception.Message))"
+}
+
+# ---- re-entrancy guard ----
+Write-Step "Checking for existing daemon jobs..."
+$existingJobs = @()
+$jobNames = @("StreamMonitor", "SpotifyPoller", "AudioVis", "TwitchChat", "HotkeyDaemon")
+foreach ($n in $jobNames) {
+    $j = Get-Job -Name $n -ErrorAction SilentlyContinue
+    if ($j) { $existingJobs += $n }
+}
+if ($existingJobs.Count -gt 0) {
+    Write-Host "  [!] Existing jobs found: $($existingJobs -join ', ')" -ForegroundColor Yellow
+    if (-not $Force) {
+        Write-Host "  [!] Run with -Force to proceed anyway, or run end-stream.ps1 first." -ForegroundColor Yellow
+        exit 1
+    }
+    Write-Host "  [+] -Force set, proceeding with existing jobs running" -ForegroundColor DarkGray
+}
+Write-Ok "No duplicate run detected"
+
+# ---- pre-flight Twitch check ----
+if (-not $NoChat) {
+    Write-Step "Validating Twitch credentials..."
+    $twitchModule = "$env:USERPROFILE\.config\opencode\modules\obs\twitch\twitch-module.ps1"
+    $twitchToken = "$env:USERPROFILE\.config\opencode\modules\obs\twitch\twitch-token.enc"
+    if (Test-Path $twitchToken) {
+        try {
+            . $twitchModule
+            $status = Get-TwitchStreamStatus -ErrorAction SilentlyContinue
+            if ($status) { Write-Ok "Twitch credentials valid" }
+            else { throw "API call returned empty" }
+        } catch {
+            Write-Host "  [!] Twitch validation failed: $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "  [!] Chat daemon may not connect. Run twitch-module.ps1 -Setup to re-authenticate." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "  [!] No Twitch token found. Chat daemon will not connect." -ForegroundColor Yellow
+        Write-Host "  [!] Run: twitch-module.ps1 -Setup" -ForegroundColor Yellow
+    }
 }
 
 Write-Ok "All prerequisites met"
@@ -150,6 +197,37 @@ if (-not $NoChat) {
     Write-Ok "Twitch Chat daemon started (Job ID: $($chatJob.Id), log: $(Split-Path $chatLog -Leaf))"
 }
 
+if (-not $NoHotkeys) {
+    Write-Step "Launching Hotkey daemon..."
+    $hotkeyLog = Join-Path $Logs_Dir "hotkeys-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+    $hotkeyJob = Start-Job -Name "HotkeyDaemon" -ScriptBlock {
+        param($ScriptPath, $LogPath, $PollMs, $AfdMin, $AfdPollMs)
+        & $ScriptPath -PollIntervalMs $PollMs -AfdTimeoutMinutes $AfdMin -AfdPollIntervalMs $AfdPollMs *>&1 | Out-File $LogPath -Encoding utf8 -Append
+    } -ArgumentList $hotkeyScript, $hotkeyLog, $Hotkey_PollIntervalMs, $AFK_TimeoutMinutes, $AFK_PollIntervalMs
+    Write-Ok "Hotkey daemon started (Job ID: $($hotkeyJob.Id), log: $(Split-Path $hotkeyLog -Leaf))"
+}
+
+# ---- timer → auto scene switch ----
+if ($Timer_SceneSwitchAuto) {
+    Write-Step "Scheduling auto scene switch: '$Scene_Streaming' in ${Minutes} minutes..."
+    $timerLog = Join-Path $Logs_Dir "timer-scene-$(Get-Date -Format 'yyyyMMdd-HHmmss').log"
+    $timerJob = Start-Job -Name "TimerSceneSwitch" -ScriptBlock {
+        param($Minutes2, $SceneStreaming, $ObsHost, $ObsPort, $ObsPass, $WsModule, $LogPath)
+        Start-Sleep -Seconds ($Minutes2 * 60)
+        try {
+            Import-Module $WsModule -Force
+            $ws = Connect-ObsWebSocket -Host $ObsHost -Port $ObsPort -Password $ObsPass
+            $data = "{`"sceneName`":`"$SceneStreaming`"}"
+            $null = Invoke-ObsRequest -WebSocket $ws -RequestType "SetCurrentProgramScene" -RequestData $data
+            Disconnect-ObsWebSocket $ws
+            "Auto scene switch: $SceneStreaming at $(Get-Date)" | Out-File $LogPath -Encoding utf8 -Append
+        } catch {
+            "Timer scene switch failed: $_" | Out-File $LogPath -Encoding utf8 -Append
+        }
+    } -ArgumentList $Minutes, $Scene_Streaming, $OBS_Host, $OBS_Port, $OBS_Password, "$env:USERPROFILE\.config\opencode\modules\obs\scripts\obs-wsapi.psm1", $timerLog
+    Write-Ok "Auto scene switch scheduled (job: $($timerJob.Id), switch to '$Scene_Streaming' in ${Minutes}m)"
+}
+
 Write-Host ""
 
 # ---- summary ----
@@ -167,6 +245,12 @@ if (-not $NoAudioVis) {
 if (-not $NoChat) {
     Write-Info "Twitch Chat"           "Running"
 }
+if (-not $NoHotkeys) {
+    Write-Info "Hotkey daemon"         "Running"
+}
+if ($Timer_SceneSwitchAuto) {
+    Write-Info "Auto scene switch"     "'$Scene_Streaming' in ${Minutes}m"
+}
 Write-Info "Starting Soon timer"     "$Minutes min"
 Write-Info "Logs directory"          "$Logs_Dir"
 Write-Info "OBS scenes"              "$($Scene_StartingSoon) > $($Scene_Streaming) > $($Scene_JustChatting) > $($Scene_BeBackSoon) > $($Scene_EndOfStream) > $($Scene_TechDifficulties)"
@@ -176,6 +260,12 @@ if (-not $NoSpotify) {
     Write-Host "  Spotify now-playing:         ON (writes to overlays/np-data.js)" -ForegroundColor Gray
 }
 Write-Host "  Tech-difficulties timeout: $($Monitor_TechDiffTimeoutSec)s of downtime > End of Stream" -ForegroundColor Gray
+if (-not $NoHotkeys) {
+    Write-Host "  Hotkeys:                    Ctrl+Shift+B/S/T/E/M/R" -ForegroundColor Gray
+}
+if ($Timer_SceneSwitchAuto) {
+    Write-Host "  Auto scene switch:          '$Scene_Streaming' after ${Minutes}m" -ForegroundColor Gray
+}
 Write-Host ""
 
 # ---- monitor loop (keeps this window alive, shows status) ----
@@ -237,6 +327,24 @@ while ($true) {
                 & $ScriptPath *>&1 | Out-File $LogPath -Encoding utf8 -Append
             } -ArgumentList $chatDaemonScript, $chatLog
         }
+    }
+
+    if (-not $NoHotkeys) {
+        $hj = Get-Job -Name "HotkeyDaemon" -ErrorAction SilentlyContinue
+        if ($hj -and $hj.State -eq "Failed") {
+            Write-Host "  $(Get-Date -Format 'HH:mm:ss') [WARN] Hotkey daemon failed. Restarting..." -ForegroundColor Yellow
+            $hj | Remove-Job -Force
+            $hotkeyJob = Start-Job -Name "HotkeyDaemon" -ScriptBlock {
+                param($ScriptPath, $LogPath, $PollMs, $AfdMin, $AfdPollMs)
+                & $ScriptPath -PollIntervalMs $PollMs -AfdTimeoutMinutes $AfdMin -AfdPollIntervalMs $AfdPollMs *>&1 | Out-File $LogPath -Encoding utf8 -Append
+            } -ArgumentList $hotkeyScript, $hotkeyLog, $Hotkey_PollIntervalMs, $AFK_TimeoutMinutes, $AFK_PollIntervalMs
+        }
+    }
+
+    $ts = Get-Job -Name "TimerSceneSwitch" -ErrorAction SilentlyContinue
+    if ($ts -and $ts.State -eq "Failed") {
+        Write-Host "  $(Get-Date -Format 'HH:mm:ss') [WARN] Timer scene switch failed." -ForegroundColor Yellow
+        $ts | Remove-Job -Force
     }
 
     # Periodic status line every 30s
