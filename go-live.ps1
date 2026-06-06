@@ -16,6 +16,7 @@ param(
     [switch]$NoChat,
     [switch]$NoHotkeys,
     [switch]$Force,
+    [switch]$SkipUpdate,
     [ValidateRange(1, 999)]
     [int]$Minutes = 30
 )
@@ -58,6 +59,19 @@ function Write-Info($label, $value)  { Write-Host "  $($label.PadRight(22)) $val
 Clear-Host
 Write-Banner
 Write-Host ""
+
+if (-not $SkipUpdate) {
+    Write-Step "Checking for updates..."
+    $buildInfo = Join-Path $scriptRoot "build-info.json"
+    $updateScript = Join-Path $scriptRoot "scripts\update-streaming.ps1"
+    if (Test-Path $updateScript) {
+        try {
+            & $updateScript -BuildInfoPath $buildInfo
+        } catch {
+            Write-Host "  [:)] Update check skipped: $($_.Exception.Message)" -ForegroundColor DarkGray
+        }
+    }
+}
 
 Write-Step "Checking prerequisites..."
 
