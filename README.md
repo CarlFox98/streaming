@@ -197,6 +197,7 @@ All shared settings in `Streaming/config.ps1`. Copy `config.ps1.example` → `co
 - **Audio Visualizer**: Rainbow spectrum bars driven by `audio-levels.js`
 - **Chat overlay**: `chat.html` reads `chat-data.json` from IRC daemon
 - **Alert overlay**: `alerts.html` reads `alerts-queue.json` for subs/raids/follows
+- **Pride Month**: Subtle 6-stripe pride flag in bottom-right corner of every overlay; decorative line uses pride-inspired gradient (June 2026)
 - **Auto crash handling**: Stream monitor detects drops → Technical Difficulties → auto-recover or End of Stream
 
 ## Stream Monitor State Machine
