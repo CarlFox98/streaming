@@ -56,6 +56,9 @@ html,body{ width:100%; height:100%; overflow:hidden; background:transparent;
 .so-eyebrow{ display:inline-flex; align-items:center; gap:9px; font-size:14px; font-weight:700; letter-spacing:5px;
   text-transform:uppercase; color:var(--c1); text-shadow:0 0 12px rgba(87,242,228,0.5); }
 .so-eyebrow .dot{ width:9px; height:9px; border-radius:50%; background:var(--c1); box-shadow:0 0 8px var(--c1),0 0 16px var(--c1); animation:blip 1.4s ease-in-out infinite; }
+/* LIVE NOW state — magenta accent when the shouted user is streaming right now */
+.so.live .so-eyebrow{ color:var(--c4); text-shadow:0 0 12px rgba(255,122,203,0.6); }
+.so.live .so-eyebrow .dot{ background:var(--c4); box-shadow:0 0 8px var(--c4),0 0 16px var(--c4); animation-duration:0.9s; }
 .so-name{ font-size:44px; font-weight:700; line-height:1.06; letter-spacing:0.5px; max-width:320px; word-break:break-word;
   background:linear-gradient(100deg,var(--c1),var(--c2),#ffffff 45%,var(--c3),var(--c4)); background-size:250% 100%;
   -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
@@ -86,7 +89,7 @@ html,body{ width:100%; height:100%; overflow:hidden; background:transparent;
     <div class="so-inner">
       <div class="so-id">
         <div class="so-ava"><img id="ava" src="" alt=""></div>
-        <div class="so-eyebrow"><span class="dot"></span>Shoutout</div>
+        <div class="so-eyebrow"><span class="dot"></span><span id="eyebrow">Shoutout</span></div>
         <div class="so-name" id="name">Streamer</div>
         <div class="so-handle" id="handle">@streamer</div>
         <div class="so-cat" id="cat">Last seen streaming <b>&mdash;</b></div>
@@ -111,12 +114,19 @@ html,body{ width:100%; height:100%; overflow:hidden; background:transparent;
   };
   var card=document.getElementById('card'), ava=document.getElementById('ava'),
       nameEl=document.getElementById('name'), handleEl=document.getElementById('handle'),
-      catEl=document.getElementById('cat'), clip=document.getElementById('clip'), noclip=document.getElementById('noclip');
+      catEl=document.getElementById('cat'), clip=document.getElementById('clip'), noclip=document.getElementById('noclip'),
+      eyebrowEl=document.getElementById('eyebrow');
   var queue=[], busy=false;
+  var clipActive=false;   // are we currently telling the service a clip is playing?
 
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 
+  function sendEvt(o){ try{ if(ws && ws.readyState===1) ws.send(JSON.stringify(o)); }catch(e){} }
+  function clipStarted(){ if(!clipActive){ clipActive=true; sendEvt({type:'clipstart'}); } }
+  function clipEnded(){ if(clipActive){ clipActive=false; sendEvt({type:'clipend'}); } }
+
   function clearClip(){
+    clipEnded();   // release audio ducking if a clip was playing
     var v=clip.querySelector('video'); if(v){ try{ v.pause(); }catch(e){} v.removeAttribute('src'); v.remove(); }
     var f=clip.querySelector('iframe'); if(f) f.remove();
     var t=clip.querySelector('img.thumb'); if(t) t.remove();
@@ -135,10 +145,12 @@ html,body{ width:100%; height:100%; overflow:hidden; background:transparent;
       // muted autoplay is ALWAYS allowed; we unmute the moment it's actually playing
       v.autoplay=true; v.muted=true; v.defaultMuted=true; v.playsInline=true; v.preload='auto';
       v.setAttribute('autoplay',''); v.setAttribute('muted',''); v.setAttribute('playsinline','');
-      v.onerror=function(){ v.remove(); showThumb(d.thumb); };
+      v.onerror=function(){ clipEnded(); v.remove(); showThumb(d.thumb); };
       v.addEventListener('playing', function(){
+        clipStarted();   // tell the service real audio has begun → duck other sources
         setTimeout(function(){ try{ v.muted=false; v.volume=1; }catch(e){} }, 250);
       }, {once:true});
+      v.addEventListener('ended', clipEnded, {once:true});
       v.src=d.clip;
       clip.appendChild(v);
       var tries=0;
@@ -154,8 +166,15 @@ html,body{ width:100%; height:100%; overflow:hidden; background:transparent;
     busy=true;
     nameEl.textContent = d.name || d.login || 'Streamer';
     handleEl.textContent = '@' + (d.login || (d.name||'').toLowerCase());
-    if(d.category){ catEl.innerHTML = 'Last seen streaming <b>'+esc(d.category)+'</b>'; }
-    else { catEl.innerHTML = 'Go give them a follow'; }
+    if(d.live){
+      card.classList.add('live');
+      eyebrowEl.textContent = 'Live Now';
+      catEl.innerHTML = d.category ? ('Live now &middot; <b>'+esc(d.category)+'</b>') : 'Live right now &mdash; go watch!';
+    } else {
+      card.classList.remove('live');
+      eyebrowEl.textContent = 'Shoutout';
+      catEl.innerHTML = d.category ? ('Last seen streaming <b>'+esc(d.category)+'</b>') : 'Go give them a follow';
+    }
     ava.src = d.avatar || '';
     setClip(d);
     // show
