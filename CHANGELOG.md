@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+### Removed
+- `AUDIT-2026-06-05.md`. It was a one-off report, and it quoted the OBS WebSocket password the audit had moved out of the scripts.
+
 ## [0.2.2] — 2026-06-05
 
 ### Fixed
