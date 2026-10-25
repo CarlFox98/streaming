@@ -2,7 +2,12 @@
 
 OBS streaming config, overlays, automation scripts, and Twitch integration for `neothefox98`.
 
-**GitHub**: `https://github.com/NeotericGamer98/streaming` (private)
+**GitHub**: `https://github.com/CarlFox98/streaming` (public)
+
+> This `master` branch is the PowerShell toolkit below. The repo's `main` branch is a
+> different thing: the GitHub Pages site (`https://carlfox98.github.io/streaming/`) that
+> hosts PRISM's hosted overlays, deployed from [PRISM-CORE](https://github.com/CarlFox98/PRISM-CORE)
+> with `tools\deploy-to-pages.bat`. Don't edit `main` by hand.
 
 ## Directory Structure
 
@@ -269,7 +274,7 @@ No plaintext secrets are stored on disk. Decryption is automatic — the `twitch
 
 ## Version Control
 
-Private repo at `https://github.com/NeotericGamer98/streaming`. Tracked in `Streaming/` directory, excluded:
+Public repo at `https://github.com/CarlFox98/streaming`. Tracked in `Streaming/` directory, excluded:
 
 - `config.ps1` (secrets) — use `config.ps1.example` as template
 - `overlays/np-data.js`, `overlays/audio-levels.js` — generated overlay data

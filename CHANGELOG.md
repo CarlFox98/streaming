@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented here.
 
+## [0.2.2] — 2026-06-05
+
+### Fixed
+- Spotify launches minimized (`-WindowStyle Minimized`)
+- `end-stream.ps1` could do nothing while Stream Mode was running: `go-live.ps1` now saves daemon PIDs to `run/daemon-pids.json`, and `end-stream.ps1` falls back to that file when `Get-Job` finds nothing
+- PS2EXE builds show their status text again (dropped `-noOutput -noError`)
+
 ## [0.2.1] — 2026-06-05
 
 ### Added
@@ -96,9 +103,3 @@ All notable changes to this project are documented here.
 - OBS automation scripts (monitor, scene control, setup, optimize, audit, verify)
 - Twitch API module (Helix, OAuth, channel info)
 - README with directory structure, quick start, scripts table, audio routing docs
-
-[0.2.1]: https://github.com/NeotericGamer98/streaming/compare/v0.2.0...v0.2.1
-[0.2.0]: https://github.com/NeotericGamer98/streaming/compare/v0.1.2...v0.2.0
-[0.1.2]: https://github.com/NeotericGamer98/streaming/compare/v0.1.1...v0.1.2
-[0.1.1]: https://github.com/NeotericGamer98/streaming/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/NeotericGamer98/streaming/releases/tag/v0.1.0
