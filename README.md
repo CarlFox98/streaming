@@ -1,8 +1,13 @@
-# NeoTheFox98 — Streaming Project
+# NeoTheFox98 Streaming Project
 
 OBS streaming config, overlays, automation scripts, and Twitch integration for `neothefox98`.
 
-**GitHub**: `https://github.com/NeotericGamer98/streaming` (private)
+**GitHub**: `https://github.com/CarlFox98/streaming` (public)
+
+> This `master` branch is the PowerShell toolkit below. The repo's `main` branch is a
+> different thing: the GitHub Pages site (`https://carlfox98.github.io/streaming/`) that
+> hosts PRISM's hosted overlays, deployed from [PRISM-CORE](https://github.com/CarlFox98/PRISM-CORE)
+> with `tools\deploy-to-pages.bat`. Don't edit `main` by hand.
 
 ## Directory Structure
 
@@ -10,7 +15,7 @@ OBS streaming config, overlays, automation scripts, and Twitch integration for `
 Streaming/                          ← git repo root
 ├── CHANGELOG.md                    (release history)
 ├── README.md                       (this file)
-├── config.ps1.example              (copy to config.ps1, fill in secrets — gitignored)
+├── config.ps1.example              (copy to config.ps1, fill in secrets; gitignored)
 ├── go-live.ps1                     ← one-command launcher
 ├── end-stream.ps1                  ← graceful cleanup
 ├── .gitignore
@@ -21,7 +26,7 @@ Streaming/                          ← git repo root
 │   ├── brb.html
 │   ├── end-of-stream.html
 │   ├── technical-difficulties.html
-│   ├── chat.html                   (Twitch chat overlay — reads chat-data.json)
+│   ├── chat.html                   (Twitch chat overlay, reads chat-data.json)
 │   └── alerts.html                 (sub/raid/follow alert overlay)
 ├── assets/
 │   ├── Bean.png
@@ -36,14 +41,14 @@ Streaming/                          ← git repo root
 │   └── protect-twitch-secrets.ps1  (DPAPI-encrypt OAuth tokens)
 ├── twitch/
 │   └── README.md
-├── logs/                           (auto-created — gitignored)
-└── backups/                        (auto-created — gitignored)
+├── logs/                           (auto-created, gitignored)
+└── backups/                        (auto-created, gitignored)
 ```
 
 ## Quick Start
 
 ```powershell
-# ONE command — starts everything:
+# ONE command starts everything:
 .\go-live.ps1
 
 # Options:
@@ -88,15 +93,15 @@ All automation scripts live at `.config/opencode/modules/obs/scripts/` and sourc
 
 | Script | Location | Purpose |
 |--------|----------|---------|
-| `obs-preflight.ps1` | hub | Preflight — validates OBS config, scenes, audio, overlays, disk before go-live |
-| `obs-stream-monitor.ps1` | hub | Daemon — polls OBS every 2s, auto-switches scenes on stream drop |
-| `obs-hotkeys.ps1` | hub | Daemon — global hotkeys + AFK/idle detection via Win32 P/Invoke |
-| `go-live.ps1` | repo root | Launcher — starts all daemons, auto scene timer, handles restarts |
-| `end-stream.ps1` | repo root | Cleanup — stops daemons, stops recording, shows stream summary |
+| `obs-preflight.ps1` | hub | Preflight: validates OBS config, scenes, audio, overlays, disk before go-live |
+| `obs-stream-monitor.ps1` | hub | Daemon: polls OBS every 2s, auto-switches scenes on stream drop |
+| `obs-hotkeys.ps1` | hub | Daemon: global hotkeys + AFK/idle detection via Win32 P/Invoke |
+| `go-live.ps1` | repo root | Launcher: starts all daemons, auto scene timer, handles restarts |
+| `end-stream.ps1` | repo root | Cleanup: stops daemons, stops recording, shows stream summary |
 | `spotify-now-playing.ps1` | hub | Polls Spotify window title → writes `overlays/np-data.js` |
-| `obs-audio-vis.ps1` | `repo/scripts/` | Daemon — writes audio levels to `overlays/audio-levels.js` |
-| `start-stream-mode.ps1` | `repo/scripts/` | Legacy launcher — full stream mode with all daemons |
-| `obs-wsapi.psm1` | hub | Shared module — OBS WebSocket authentication + request/response |
+| `obs-audio-vis.ps1` | `repo/scripts/` | Daemon: writes audio levels to `overlays/audio-levels.js` |
+| `start-stream-mode.ps1` | `repo/scripts/` | Legacy launcher: full stream mode with all daemons |
+| `obs-wsapi.psm1` | hub | Shared module for OBS WebSocket authentication + request/response |
 | `obs-scene.ps1` | hub | One-time: creates Starting Soon scene in OBS |
 | `obs-update-starting-soon.ps1` | hub | Rebuilds Starting Soon browser source |
 | `obs-add-scene.ps1` | hub | One-time: adds BRB / End of Stream / Tech Difficulties scenes |
@@ -111,16 +116,16 @@ All automation scripts live at `.config/opencode/modules/obs/scripts/` and sourc
 
 | File | Location | Purpose |
 |------|----------|---------|
-| `twitch-module.ps1` | hub | Twitch Helix API wrapper — OAuth, channel info, title/game, chat |
-| `twitch-chat-daemon.ps1` | hub | Persistent IRC connection (SSL) — parses PRIVMSG + USERNOTICE |
+| `twitch-module.ps1` | hub | Twitch Helix API wrapper (OAuth, channel info, title/game, chat) |
+| `twitch-chat-daemon.ps1` | hub | Persistent IRC connection (SSL) that parses PRIVMSG + USERNOTICE |
 | `twitch-credentials.enc` | hub | DPAPI-encrypted channel name, client ID, stream key |
 | `twitch-token.enc` | hub | DPAPI-encrypted OAuth token (auto-refreshes) |
 
-All secrets are encrypted with Windows DPAPI (tied to user account — zero configuration). Run `protect-twitch-secrets.ps1` to encrypt plaintext files, then delete the originals.
+All secrets are encrypted with Windows DPAPI (tied to user account, so zero configuration). Run `protect-twitch-secrets.ps1` to encrypt plaintext files, then delete the originals.
 
 ### Chat Overlay
 
-`overlays/chat.html` — add as OBS Browser Source. Displays chat messages with:
+`overlays/chat.html`: add as OBS Browser Source. Displays chat messages with:
 - Username in the chatter's chat color
 - Badges (sub, mod, VIP, broadcaster)
 - Timestamps
@@ -130,11 +135,11 @@ All secrets are encrypted with Windows DPAPI (tied to user account — zero conf
 
 ### Alert Overlay
 
-`overlays/alerts.html` — add as OBS Browser Source. Displays queued alerts for:
-- **Sub** / **Resub** — tier + cumulative months
-- **Sub Gift** — gifter + recipient + tier
-- **Raid** — raider + viewer count
-- **Follow** — new follower (via ritual event)
+`overlays/alerts.html`: add as OBS Browser Source. Displays queued alerts for:
+- **Sub** / **Resub**: tier + cumulative months
+- **Sub Gift**: gifter + recipient + tier
+- **Raid**: raider + viewer count
+- **Follow**: new follower (via ritual event)
 
 Alerts are driven by USERNOTICE IRC messages parsed by `twitch-chat-daemon.ps1`. Each alert displays for 8 seconds with icon animation, then the next in queue.
 
@@ -144,10 +149,10 @@ When `go-live.ps1` runs, it starts these PowerShell background jobs:
 
 | Job | Script | What it does |
 |-----|--------|-------------|
-| StreamMonitor | `obs-stream-monitor.ps1` | Polls OBS WebSocket every 2s — detects stream drops, auto-switches scenes |
+| StreamMonitor | `obs-stream-monitor.ps1` | Polls OBS WebSocket every 2s, detects stream drops, auto-switches scenes |
 | SpotifyPoller | `spotify-now-playing.ps1` | Reads Spotify window title, writes to `np-data.js` |
 | AudioVis | `obs-audio-vis.ps1` | Reads OBS audio levels, writes to `audio-levels.js` |
-| TwitchChat | `twitch-chat-daemon.ps1` | IRC connection — writes `chat-data.json` + `alerts-queue.json` |
+| TwitchChat | `twitch-chat-daemon.ps1` | IRC connection that writes `chat-data.json` + `alerts-queue.json` |
 | HotkeyDaemon | `obs-hotkeys.ps1` | Global hotkeys + AFK detection via Win32 P/Invoke |
 | TimerSceneSwitch | inline | Waits N minutes, then auto-switches to Streaming scene |
 
@@ -156,10 +161,10 @@ All failed jobs are auto-restarted. Run `end-stream.ps1` to stop everything clea
 ## Stream Summary
 
 On `end-stream.ps1`, the summary displays:
-- **Stream duration** — estimated from log timestamps
-- **Chat messages** — total count from `chat-data.json`
-- **Alert breakdown** — subs, resubs, gifts, raids, follows from `alerts-queue.json`
-- **Jobs stopped** — how many background daemons were cleaned up
+- **Stream duration**: estimated from log timestamps
+- **Chat messages**: total count from `chat-data.json`
+- **Alert breakdown**: subs, resubs, gifts, raids, follows from `alerts-queue.json`
+- **Jobs stopped**: how many background daemons were cleaned up
 
 ## Configuration
 
@@ -191,7 +196,7 @@ All shared settings in `Streaming/config.ps1`. Copy `config.ps1.example` → `co
 
 ## Overlay Features
 
-- **Shared theme**: `overlays/overlay-theme.css` — CSS custom properties, GPU-accelerated animations, `prefers-reduced-motion` support
+- **Shared theme**: `overlays/overlay-theme.css` (CSS custom properties, GPU-accelerated animations, `prefers-reduced-motion` support)
 - **Configurable timer**: `starting-soon.html?minutes=N` (default 5, max 120)
 - **Now Playing**: Spotify track title displayed bottom-left via `np-data.js`
 - **Audio Visualizer**: Rainbow spectrum bars driven by `audio-levels.js`
@@ -223,23 +228,23 @@ IDLE ──stream──> STREAMING ──stream drops──> TECH_DIFF
 
 7 scenes in order:
 
-1. **Starting Soon** — countdown overlay, now-playing slot, audio visualizer
-2. **Streaming** — display capture, game/desktop content
-3. **Just Chatting** — mic, Spotify, VM, PNGtuber
-4. **Be Back Soon** — overlay (shutdown when hidden, reloads on show)
-5. **Technical Difficulties** — overlay (shutdown when hidden, reloads on show)
-6. **End of Stream** — overlay (shutdown when hidden, reloads on show)
+1. **Starting Soon**: countdown overlay, now-playing slot, audio visualizer
+2. **Streaming**: display capture, game/desktop content
+3. **Just Chatting**: mic, Spotify, VM, PNGtuber
+4. **Be Back Soon**: overlay (shutdown when hidden, reloads on show)
+5. **Technical Difficulties**: overlay (shutdown when hidden, reloads on show)
+6. **End of Stream**: overlay (shutdown when hidden, reloads on show)
 
-Profile: `Discord_Capture` — 1920×1080 @ 60fps, AMF H.264 @ 6000 Kbps (Enhanced Broadcasting), 48kHz AAC, Twitch ingest
+Profile: `Discord_Capture`, 1920×1080 @ 60fps, AMF H.264 @ 6000 Kbps (Enhanced Broadcasting), 48kHz AAC, Twitch ingest
 
 ### Audio Routing
-- **Desktop Audio** → live tracks only (1, 7, 8) — not on VOD track 2
+- **Desktop Audio** → live tracks only (1, 7, 8), not on VOD track 2
 - **Mic** → all tracks (commentary belongs in VOD)
 - **Spotify** → all tracks except VOD track 2 (DMCA protection)
-- **Window captures**: `capture_audio` disabled (Desktop Audio handles system audio — no phasing)
+- **Window captures**: `capture_audio` disabled (Desktop Audio handles system audio, so no phasing)
 
 ### Recording
-MKV (advanced) / hybrid MP4 (fallback) — crash-safe format.
+Crash-safe format: MKV (advanced) / hybrid MP4 (fallback).
 
 ## Backup
 
@@ -265,16 +270,16 @@ Credentials and OAuth tokens are encrypted with Windows DPAPI via `protect-twitc
 # Delete plaintext .json files after verification.
 ```
 
-No plaintext secrets are stored on disk. Decryption is automatic — the `twitch-module.ps1` functions `Read-EncryptedJson` / `Write-EncryptedJson` handle both encrypted and plaintext fallback transparently.
+No plaintext secrets are stored on disk. Decryption is automatic: the `twitch-module.ps1` functions `Read-EncryptedJson` / `Write-EncryptedJson` handle both encrypted and plaintext fallback transparently.
 
 ## Version Control
 
-Private repo at `https://github.com/NeotericGamer98/streaming`. Tracked in `Streaming/` directory, excluded:
+Public repo at `https://github.com/CarlFox98/streaming`. Tracked in `Streaming/` directory, excluded:
 
-- `config.ps1` (secrets) — use `config.ps1.example` as template
-- `overlays/np-data.js`, `overlays/audio-levels.js` — generated overlay data
-- `logs/`, `backups/` — runtime data
-- `*.exe` — compiled PS2EXE binaries
+- `config.ps1` (secrets; use `config.ps1.example` as template)
+- `overlays/np-data.js`, `overlays/audio-levels.js`: generated overlay data
+- `logs/`, `backups/`: runtime data
+- `*.exe`: compiled PS2EXE binaries
 - `Thumbs.db`, `.DS_Store`, `*.swp`, `*.swo`, `*~`, `.vscode/`, `.idea/`, `*.sublime-*`
 
 See `CHANGELOG.md` for release history.

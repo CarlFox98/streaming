@@ -6,8 +6,8 @@ Scripts live at `.config\opencode\modules\obs\scripts\`
 |--------|---------|
 | `obs-wsapi.psm1` | Shared OBS WebSocket module (auth + request/response) |
 | `obs-preflight.ps1` | Pre-flight config validator |
-| `obs-stream-monitor.ps1` | Daemon — polls OBS, auto-switches scenes |
-| `obs-hotkeys.ps1` | Daemon — global hotkeys + AFK detection |
+| `obs-stream-monitor.ps1` | Daemon: polls OBS, auto-switches scenes |
+| `obs-hotkeys.ps1` | Daemon: global hotkeys + AFK detection |
 | `spotify-now-playing.ps1` | Spotify title poller |
 | `obs-scene.ps1` | Create Starting Soon scene |
 | `obs-update-starting-soon.ps1` | Rebuild Starting Soon browser source |
